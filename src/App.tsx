@@ -87,6 +87,9 @@ function Dashboard({ bundle, demoMode }: { bundle: DashboardBundle; demoMode: bo
           <TodayPage
             student={bundle.student}
             tasks={bundle.todayTasks}
+            plan={bundle.studyPlan}
+            practiceTests={bundle.practiceTests}
+            skills={bundle.skills}
             completedTaskIds={new Set([...completedTaskIds].filter((id) => allTodayTaskIds.has(id)))}
             onToggleTask={toggleTask}
             onViewWeek={() => navigate('week')}

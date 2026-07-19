@@ -12,18 +12,44 @@ import {
 } from 'lucide-react'
 import { TaskCard } from '../components/TaskCard'
 import { PageHeader, ProgressBar, StatCard } from '../components/ui'
-import type { DailyTask, Student } from '../types/models'
-import { daysBetween, formatDate } from '../utils/format'
+import type { DailyTask, PracticeTest, Skill, Student, StudyPlan } from '../types/models'
+import { daysBetween, formatDate, formatLongDate } from '../utils/format'
 
 interface TodayPageProps {
   student: Student
   tasks: DailyTask[]
+  plan: StudyPlan
+  practiceTests: PracticeTest[]
+  skills: Skill[]
   completedTaskIds: Set<string>
   onToggleTask: (taskId: string) => void
   onViewWeek: () => void
 }
 
-export function TodayPage({ student, tasks, completedTaskIds, onToggleTask, onViewWeek }: TodayPageProps) {
+function localDateKey(date = new Date()) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function addDays(dateKey: string, days: number) {
+  const date = new Date(`${dateKey}T12:00:00`)
+  date.setDate(date.getDate() + days)
+  return localDateKey(date)
+}
+
+export function TodayPage({ student, tasks, plan, practiceTests, skills, completedTaskIds, onToggleTask, onViewWeek }: TodayPageProps) {
+  const todayKey = localDateKey()
+  const tomorrowKey = addDays(todayKey, 1)
+  const tomorrow = plan.days.find((day) => day.date === tomorrowKey)
+  const latestTest = practiceTests.at(-1)
+  const previousTest = practiceTests.at(-2)
+  const latestGain = latestTest && previousTest ? latestTest.totalScore - previousTest.totalScore : 0
+  const strongSkills = skills.filter((skill) => ['Strong', 'Mastered'].includes(skill.combinedStatus)).length
+  const coachSkill = skills.find((skill) => skill.combinedStatus === 'Needs review')
+    ?? skills.find((skill) => skill.combinedStatus === 'Developing')
+    ?? skills[0]
   const completedCount = tasks.filter((task) => completedTaskIds.has(task.id)).length
   const totalMinutes = tasks.reduce((total, task) => total + task.minutes, 0)
   const remainingMinutes = tasks
@@ -37,9 +63,11 @@ export function TodayPage({ student, tasks, completedTaskIds, onToggleTask, onVi
   return (
     <>
       <PageHeader
-        eyebrow="Saturday, July 18"
+        eyebrow={formatLongDate(todayKey)}
         title={`Good morning, ${student.firstName}`}
-        description="Your plan is ready. Today is a longer practice day, with one new concept and one important accuracy target."
+        description={tasks.length
+          ? 'Your private plan is ready. Work through today’s assignments, then review the reason behind every miss.'
+          : 'There are no assignments scheduled for today yet. Open the weekly plan to see what is coming next.'}
         action={
           <button className="button button--secondary" onClick={onViewWeek}>
             <CalendarDays size={16} /> View full week
@@ -51,7 +79,7 @@ export function TodayPage({ student, tasks, completedTaskIds, onToggleTask, onVi
         <article className="score-hero">
           <div className="score-hero__topline">
             <span><TrendingUp size={15} /> Current trajectory</span>
-            <span className="score-hero__gain">+{student.currentScore - student.baselineScore} points</span>
+            <span className="score-hero__gain">+{student.currentScore - student.baselineScore} points from baseline</span>
           </div>
           <div className="score-hero__main">
             <div>
@@ -81,25 +109,25 @@ export function TodayPage({ student, tasks, completedTaskIds, onToggleTask, onVi
           </div>
           <div className="daily-progress-card__copy">
             <span className="eyebrow">Today’s plan</span>
-            <h2>{completedCount === tasks.length ? 'Great work—you’re done!' : 'A focused finish'}</h2>
+            <h2>{tasks.length > 0 && completedCount === tasks.length ? 'Great work—you’re done!' : 'A focused finish'}</h2>
             <p><Clock3 size={15} /> {remainingMinutes} minutes remaining of {totalMinutes}</p>
-            <p><CalendarDays size={15} /> Test in {daysBetween('2026-07-18', student.testDate)} days</p>
+            <p><CalendarDays size={15} /> Test in {daysBetween(todayKey, student.testDate)} days</p>
           </div>
         </article>
       </section>
 
       <section className="stats-grid stats-grid--four" aria-label="Progress snapshot">
-        <StatCard label="Current score" value={student.currentScore} detail="Up 40 since last test" icon={CircleGauge} tone="violet" />
-        <StatCard label="Daily streak" value="9 days" detail="Personal best: 12" icon={Sparkles} tone="gold" />
-        <StatCard label="Skills strong" value="8 / 22" detail="3 improved this month" icon={CheckCircle2} tone="teal" />
-        <StatCard label="Next practice test" value="Aug 8" detail="Three weeks away" icon={CalendarDays} tone="blue" />
+        <StatCard label="Current score" value={student.currentScore} detail={previousTest ? `${latestGain >= 0 ? '+' : ''}${latestGain} since ${formatDate(previousTest.date)}` : 'Latest recorded full test'} icon={CircleGauge} tone="violet" />
+        <StatCard label="Tests logged" value={practiceTests.length} detail={latestTest ? `Latest: ${formatDate(latestTest.date)}` : 'No test records yet'} icon={Sparkles} tone="gold" />
+        <StatCard label="Skills strong" value={`${strongSkills} / ${skills.length}`} detail="Strong or mastered" icon={CheckCircle2} tone="teal" />
+        <StatCard label="PSAT 8/9 test day" value={formatDate(student.testDate, { month: 'short', day: 'numeric' })} detail={`${daysBetween(todayKey, student.testDate)} days away`} icon={CalendarDays} tone="blue" />
       </section>
 
       <div className="content-grid content-grid--today">
         <section className="panel today-plan">
           <div className="panel__header">
             <div>
-              <span className="eyebrow">Saturday · Longer session</span>
+              <span className="eyebrow">{formatDate(todayKey, { weekday: 'long' })} · {totalMinutes >= 60 ? 'Longer session' : 'Focused session'}</span>
               <h2>Today’s assignments</h2>
             </div>
             <span className="panel__total"><Clock3 size={15} /> {totalMinutes} min</span>
@@ -120,17 +148,14 @@ export function TodayPage({ student, tasks, completedTaskIds, onToggleTask, onVi
           <article className="coach-card">
             <div className="coach-card__icon"><BrainCircuit size={21} /></div>
             <span className="eyebrow">Coach’s focus</span>
-            <h2>Accuracy before speed</h2>
-            <p>
-              Boundaries drill accuracy is improving, but full-test evidence still lags. Explain the rule
-              behind every miss today—don’t just correct the answer.
-            </p>
+            <h2>{coachSkill?.name ?? 'Accuracy before speed'}</h2>
+            <p>{coachSkill?.nextStep ?? 'Explain the rule behind every miss today—don’t just correct the answer.'}</p>
             <div className="coach-card__skill">
               <div>
                 <span>Priority skill</span>
-                <strong>Boundaries</strong>
+                <strong>{coachSkill?.name ?? 'Not selected'}</strong>
               </div>
-              <span>75% recent</span>
+              <span>{coachSkill?.drillEvidence.recentAccuracy === undefined ? 'No recent drill' : `${Math.round(coachSkill.drillEvidence.recentAccuracy)}% recent`}</span>
             </div>
           </article>
 
@@ -160,8 +185,8 @@ export function TodayPage({ student, tasks, completedTaskIds, onToggleTask, onVi
 
           <button className="next-up-card" onClick={onViewWeek}>
             <span>
-              <small>Tomorrow · {formatDate('2026-07-19')}</small>
-              <strong>Read, reset, and preview the week</strong>
+              <small>Tomorrow · {formatDate(tomorrowKey)}</small>
+              <strong>{tomorrow?.focus ?? 'No assignments scheduled yet'}</strong>
             </span>
             <ArrowRight size={18} />
           </button>

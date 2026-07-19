@@ -40,7 +40,8 @@ export function ScoresPage({ tests, targetScore }: { tests: PracticeTest[]; targ
   const firstTest = tests[0]
   const latestTest = tests.at(-1)!
   const scoreGain = latestTest.totalScore - firstTest.totalScore
-  const testAccuracy = Math.round((selectedTest.totalCorrect / (selectedTest.totalCorrect + selectedTest.totalIncorrect)) * 100)
+  const selectedAttempts = selectedTest.totalCorrect + selectedTest.totalIncorrect
+  const testAccuracy = selectedAttempts ? Math.round((selectedTest.totalCorrect / selectedAttempts) * 100) : undefined
 
   return (
     <>
@@ -52,10 +53,10 @@ export function ScoresPage({ tests, targetScore }: { tests: PracticeTest[]; targ
       />
 
       <section className="stats-grid stats-grid--four">
-        <StatCard label="Latest score" value={latestTest.totalScore} detail="Bluebook Practice 6" icon={CircleGauge} tone="violet" />
-        <StatCard label="Total growth" value={`+${scoreGain}`} detail={`Since ${formatDate(firstTest.date)}`} icon={ArrowUpRight} tone="teal" />
-        <StatCard label="Points to goal" value={targetScore - latestTest.totalScore} detail="Target: 1400" icon={Goal} tone="gold" />
-        <StatCard label="Tests completed" value={tests.length} detail="Next test: Aug 8" icon={ListChecks} tone="blue" />
+        <StatCard label="Latest score" value={latestTest.totalScore} detail={latestTest.name} icon={CircleGauge} tone="violet" />
+        <StatCard label="Total growth" value={`${scoreGain >= 0 ? '+' : ''}${scoreGain}`} detail={`Since ${formatDate(firstTest.date)}`} icon={ArrowUpRight} tone="teal" />
+        <StatCard label="Points to goal" value={targetScore - latestTest.totalScore} detail={`Target: ${targetScore}`} icon={Goal} tone="gold" />
+        <StatCard label="Tests completed" value={tests.length} detail={`Latest: ${formatDate(latestTest.date)}`} icon={ListChecks} tone="blue" />
       </section>
 
       <section className="panel score-trend-panel">
@@ -115,7 +116,9 @@ export function ScoresPage({ tests, targetScore }: { tests: PracticeTest[]; targ
                   <td><strong>{test.totalScore}</strong></td>
                   <td>{test.readingWritingScore}</td>
                   <td>{test.mathScore}</td>
-                  <td><span className="correct-count">{test.totalCorrect} correct</span> · {test.totalIncorrect} missed</td>
+                  <td>{test.totalCorrect + test.totalIncorrect
+                    ? <><span className="correct-count">{test.totalCorrect} correct</span> · {test.totalIncorrect} missed</>
+                    : <span className="muted-caption">Score only</span>}</td>
                 </tr>
               ))}
             </tbody>
@@ -134,9 +137,9 @@ export function ScoresPage({ tests, targetScore }: { tests: PracticeTest[]; targ
         </div>
 
         <div className="test-detail__stats">
-          <div><span>R&W</span><strong>{selectedTest.readingWritingScore}</strong><small>{selectedTest.readingWritingCorrect}/{selectedTest.readingWritingCorrect + selectedTest.readingWritingIncorrect} correct</small></div>
-          <div><span>Math</span><strong>{selectedTest.mathScore}</strong><small>{selectedTest.mathCorrect}/{selectedTest.mathCorrect + selectedTest.mathIncorrect} correct</small></div>
-          <div><span>Accuracy</span><strong>{testAccuracy}%</strong><small>{selectedTest.totalCorrect} of {selectedTest.totalCorrect + selectedTest.totalIncorrect}</small></div>
+          <div><span>R&W</span><strong>{selectedTest.readingWritingScore}</strong><small>{selectedTest.readingWritingCorrect + selectedTest.readingWritingIncorrect ? `${selectedTest.readingWritingCorrect}/${selectedTest.readingWritingCorrect + selectedTest.readingWritingIncorrect} correct` : 'Question counts not recorded'}</small></div>
+          <div><span>Math</span><strong>{selectedTest.mathScore}</strong><small>{selectedTest.mathCorrect + selectedTest.mathIncorrect ? `${selectedTest.mathCorrect}/${selectedTest.mathCorrect + selectedTest.mathIncorrect} correct` : 'Question counts not recorded'}</small></div>
+          <div><span>Accuracy</span><strong>{testAccuracy === undefined ? '—' : `${testAccuracy}%`}</strong><small>{selectedAttempts ? `${selectedTest.totalCorrect} of ${selectedAttempts}` : 'Score-only record'}</small></div>
           <div><span>Mistakes logged</span><strong>{selectedTest.mistakes.length}</strong><small>{selectedTest.mistakes.filter((mistake) => mistake.reviewed).length} reviewed</small></div>
         </div>
 
@@ -166,8 +169,8 @@ export function ScoresPage({ tests, targetScore }: { tests: PracticeTest[]; targ
               <div><Clock3 size={18} /><span>Pacing issues</span><strong>{selectedTest.strategyMetrics.pacingIssues}</strong></div>
               <div><Flag size={18} /><span>90-sec violations</span><strong>{selectedTest.strategyMetrics.ninetySecondViolations}</strong></div>
               <div><AlertTriangle size={18} /><span>Rushed</span><strong>{selectedTest.strategyMetrics.rushedQuestions}</strong></div>
-              <div><Target size={18} /><span>Module 1</span><strong>{selectedTest.strategyMetrics.module1Accuracy}%</strong></div>
-              <div><Target size={18} /><span>Module 2</span><strong>{selectedTest.strategyMetrics.module2Accuracy}%</strong></div>
+              <div><Target size={18} /><span>Module 1</span><strong>{selectedTest.strategyMetrics.module1Accuracy === undefined ? '—' : `${selectedTest.strategyMetrics.module1Accuracy}%`}</strong></div>
+              <div><Target size={18} /><span>Module 2</span><strong>{selectedTest.strategyMetrics.module2Accuracy === undefined ? '—' : `${selectedTest.strategyMetrics.module2Accuracy}%`}</strong></div>
             </div>
           </div>
         )}
@@ -196,7 +199,7 @@ export function ScoresPage({ tests, targetScore }: { tests: PracticeTest[]; targ
               ))}
             </div>
           ) : (
-            <div className="no-detail">Question-level mistakes have not been entered for this demo record.</div>
+            <div className="no-detail">Question-level mistakes were not recorded for this test.</div>
           )}
         </div>
       </section>

@@ -19,6 +19,7 @@ export function BooksPage({ books, resources }: BooksPageProps) {
   const khanUnits = resources.filter((resource) => resource.provider === 'Khan Academy')
   const prepUnits = resources.filter((resource) => resource.provider === 'Prep book')
   const currentBook = books.find((book) => book.category === 'Current')
+  const resourceTrackCount = Number(khanUnits.length > 0) + Number(prepUnits.length > 0) + Number(books.length > 0)
 
   if (!books.length && !resources.length) {
     return (
@@ -49,14 +50,14 @@ export function BooksPage({ books, resources }: BooksPageProps) {
         eyebrow="Learning resources"
         title="Books & learning path"
         description="Keep concept learning, prep-book work, and real reading moving together—without teaching topics out of sequence."
-        action={<span className="library-chip"><Library size={16} /> 3 resource tracks</span>}
+        action={<span className="library-chip"><Library size={16} /> {resourceTrackCount} resource {resourceTrackCount === 1 ? 'track' : 'tracks'}</span>}
       />
 
       <section className="stats-grid stats-grid--four">
         <StatCard label="Khan pathway" value={`${khanProgress}%`} detail={`${khanUnits.filter((unit) => unit.status === 'Completed').length} units completed`} icon={GraduationCap} tone="violet" />
         <StatCard label="Prep book" value={`${prepProgress}%`} detail="Chapters + end drills" icon={BookOpenCheck} tone="teal" />
         <StatCard label="Current read" value={`${readingProgress}%`} detail={featuredBook?.title ?? 'Not selected'} icon={BookHeart} tone="gold" />
-        <StatCard label="Pages this week" value="54 / 70" detail="16 pages to goal" icon={Library} tone="blue" />
+        <StatCard label="Reading shelf" value={books.length} detail={books.length ? 'Independent books tracked' : 'No independent book added'} icon={Library} tone="blue" />
       </section>
 
       <section className="resource-grid">
@@ -86,9 +87,9 @@ export function BooksPage({ books, resources }: BooksPageProps) {
       <section className="panel reading-panel">
         <div className="panel__header">
           <div><span className="eyebrow">Reading stamina</span><h2>Independent reading shelf</h2></div>
-          <span className="muted-caption">70 pages this week</span>
+          <span className="muted-caption">{books.length ? `${books.reduce((sum, book) => sum + book.weeklyGoalPages, 0)} weekly goal pages` : 'No reading goal yet'}</span>
         </div>
-        <div className="book-grid">
+        {books.length ? <div className="book-grid">
           {books.map((book) => {
             const progress = Math.round((book.pagesRead / book.totalPages) * 100)
             return (
@@ -111,7 +112,7 @@ export function BooksPage({ books, resources }: BooksPageProps) {
               </article>
             )
           })}
-        </div>
+        </div> : <div className="no-detail">Independent reading has not been added yet.</div>}
       </section>
     </>
   )
