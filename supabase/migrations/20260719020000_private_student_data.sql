@@ -440,8 +440,18 @@ alter table public.daily_task_skills enable row level security;
 alter table public.books enable row level security;
 alter table public.learning_resource_progress enable row level security;
 
-revoke all on all tables in schema public from anon;
-revoke all on all tables in schema public from authenticated;
+-- Scope grants to PSAT Pathway tables so this migration can safely coexist
+-- with unrelated or legacy tables in an existing Supabase project.
+revoke all on public.profiles, public.student_profiles, public.student_guardians,
+  public.skill_catalog, public.student_skill_progress, public.practice_tests,
+  public.practice_test_domains, public.practice_test_mistakes, public.drills,
+  public.drill_mistakes, public.study_plans, public.study_days, public.daily_tasks,
+  public.daily_task_skills, public.books, public.learning_resource_progress from anon;
+revoke all on public.profiles, public.student_profiles, public.student_guardians,
+  public.skill_catalog, public.student_skill_progress, public.practice_tests,
+  public.practice_test_domains, public.practice_test_mistakes, public.drills,
+  public.drill_mistakes, public.study_plans, public.study_days, public.daily_tasks,
+  public.daily_task_skills, public.books, public.learning_resource_progress from authenticated;
 grant select on public.profiles to authenticated;
 grant update (display_name, avatar_url) on public.profiles to authenticated;
 grant select, insert, update, delete on public.student_profiles, public.student_guardians,
