@@ -208,3 +208,14 @@ export interface Book {
   note: string
   accent: string
 }
+
+export interface DashboardBundle {
+  student: Student
+  todayTasks: DailyTask[]
+  studyPlan: StudyPlan
+  practiceTests: PracticeTest[]
+  drills: Drill[]
+  skills: Skill[]
+  books: Book[]
+  learningResources: LearningResourceUnit[]
+}

@@ -5,6 +5,7 @@ import {
   Calculator,
   ChevronDown,
   LayoutDashboard,
+  LogOut,
   PenLine,
   Target,
 } from 'lucide-react'
@@ -16,6 +17,9 @@ interface AppShellProps {
   activeView: ViewId
   onNavigate: (view: ViewId) => void
   student: Student
+  dataMode: 'demo' | 'private'
+  accountLabel?: string
+  onSignOut?: () => void
   children: React.ReactNode
 }
 
@@ -28,7 +32,7 @@ const navItems: { id: ViewId; label: string; shortLabel: string; icon: typeof La
   { id: 'books', label: 'Books & Resources', shortLabel: 'Books', icon: BookOpen },
 ]
 
-export function AppShell({ activeView, onNavigate, student, children }: AppShellProps) {
+export function AppShell({ activeView, onNavigate, student, dataMode, accountLabel, onSignOut, children }: AppShellProps) {
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -64,7 +68,14 @@ export function AppShell({ activeView, onNavigate, student, children }: AppShell
             </div>
             <ChevronDown size={15} />
           </div>
-          <p className="demo-label">Demo profile · Local data</p>
+          <p className={dataMode === 'private' ? 'demo-label demo-label--private' : 'demo-label'}>
+            {dataMode === 'private' ? 'Private profile · Protected data' : 'Demo profile · Local data'}
+          </p>
+          {onSignOut && (
+            <button className="sidebar-signout" onClick={onSignOut} title={`Sign out${accountLabel ? ` ${accountLabel}` : ''}`}>
+              <LogOut size={14} /> Sign out
+            </button>
+          )}
         </div>
       </aside>
 

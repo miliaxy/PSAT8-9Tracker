@@ -17,6 +17,25 @@ import { formatDate, formatLongDate, statusKey } from '../utils/format'
 
 export function ScoresPage({ tests, targetScore }: { tests: PracticeTest[]; targetScore: number }) {
   const [selectedTestId, setSelectedTestId] = useState(tests.at(-1)?.id ?? '')
+
+  if (!tests.length) {
+    return (
+      <>
+        <PageHeader
+          eyebrow="Practice-test performance"
+          title="Scores & full-test evidence"
+          description="See the trend, inspect each test, and turn every missed question into a useful next action."
+          action={<span className="goal-chip"><Target size={16} /> Target {targetScore}</span>}
+        />
+        <section className="panel empty-data-panel">
+          <CircleGauge size={25} />
+          <h2>No practice tests yet</h2>
+          <p>The first score report will appear here after a parent administrator adds it.</p>
+        </section>
+      </>
+    )
+  }
+
   const selectedTest = tests.find((test) => test.id === selectedTestId) ?? tests.at(-1)!
   const firstTest = tests[0]
   const latestTest = tests.at(-1)!

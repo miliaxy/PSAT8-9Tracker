@@ -27,7 +27,7 @@ export function WeekPage({ plan, completedTaskIds, onToggleTask }: WeekPageProps
   const completedMinutes = tasks
     .filter((task) => completedTaskIds.has(task.id))
     .reduce((sum, task) => sum + task.minutes, 0)
-  const progress = Math.round((completedCount / tasks.length) * 100)
+  const progress = tasks.length ? Math.round((completedCount / tasks.length) * 100) : 0
 
   return (
     <>

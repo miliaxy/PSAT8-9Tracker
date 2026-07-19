@@ -1,0 +1,3 @@
+-- Intentionally contains no student or family data.
+-- Generic skill-catalog records are versioned in the migration so every
+-- environment receives the same non-personal taxonomy.

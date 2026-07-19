@@ -12,12 +12,14 @@ A responsive PSAT 8/9 coaching and progress-tracking dashboard built with React,
 - Math concept states and Khan Academy learning-path progress
 - Prep-book and independent-reading progress
 - Device-local demo task completion using `localStorage`
+- Optional Supabase email/password sign-in with private per-student records
+- Parent/student ownership rules enforced with PostgreSQL row-level security
 
 ## Data architecture
 
-The typed domain models live in `src/types/models.ts`. Generic demo fixtures live in `src/data/demoData.ts` and are intentionally separate from the UI.
+The typed domain models live in `src/types/models.ts`. Generic demo fixtures live in `src/data/demoData.ts` and are intentionally separate from the UI. With no environment variables, the app stays in fictional demo mode. With Supabase configured, it requires sign-in and loads only records the signed-in account may access.
 
-The current version has no authentication, backend, Supabase client, or Netlify configuration. Its interfaces are structured so private per-student persistence and parent/student roles can be added later without rebuilding the UI model.
+The versioned schema is in `supabase/migrations`. Every personal table has row-level security. Browser code uses only the public Supabase publishable key; a service-role key must never be placed in a `VITE_` variable.
 
 ## Run locally
 
@@ -27,6 +29,22 @@ pnpm dev
 ```
 
 Then open the local URL printed by Vite.
+
+## Connect Supabase
+
+1. Create a Supabase project.
+2. Run the migration in `supabase/migrations` with the Supabase CLI or the project SQL editor.
+3. Copy `.env.example` to `.env.local` and fill in the project URL and publishable key.
+4. Restart `pnpm dev`.
+
+Local Supabase development also requires Docker Desktop:
+
+```bash
+pnpm supabase:start
+pnpm supabase:reset
+```
+
+See `supabase/README.md` for the safe first-parent setup and data-import order.
 
 ## Verify
 

@@ -29,7 +29,7 @@ export function TodayPage({ student, tasks, completedTaskIds, onToggleTask, onVi
   const remainingMinutes = tasks
     .filter((task) => !completedTaskIds.has(task.id))
     .reduce((total, task) => total + task.minutes, 0)
-  const dailyProgress = Math.round((completedCount / tasks.length) * 100)
+  const dailyProgress = tasks.length ? Math.round((completedCount / tasks.length) * 100) : 0
   const scoreProgress = Math.round(
     ((student.currentScore - student.baselineScore) / (student.targetScore - student.baselineScore)) * 100,
   )

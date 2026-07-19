@@ -18,10 +18,30 @@ interface BooksPageProps {
 export function BooksPage({ books, resources }: BooksPageProps) {
   const khanUnits = resources.filter((resource) => resource.provider === 'Khan Academy')
   const prepUnits = resources.filter((resource) => resource.provider === 'Prep book')
-  const currentBook = books.find((book) => book.category === 'Current')!
-  const readingProgress = Math.round((currentBook.pagesRead / currentBook.totalPages) * 100)
-  const khanProgress = Math.round(khanUnits.reduce((sum, unit) => sum + unit.progress, 0) / khanUnits.length)
-  const prepProgress = Math.round(prepUnits.reduce((sum, unit) => sum + unit.progress, 0) / prepUnits.length)
+  const currentBook = books.find((book) => book.category === 'Current')
+
+  if (!books.length && !resources.length) {
+    return (
+      <>
+        <PageHeader
+          eyebrow="Learning resources"
+          title="Books & learning path"
+          description="Keep concept learning, prep-book work, and real reading moving together—without teaching topics out of sequence."
+          action={<span className="library-chip"><Library size={16} /> Resource library</span>}
+        />
+        <section className="panel empty-data-panel">
+          <Library size={25} />
+          <h2>No resources assigned yet</h2>
+          <p>Books, Khan Academy units, and prep-book chapters will appear here when they are added.</p>
+        </section>
+      </>
+    )
+  }
+
+  const featuredBook = currentBook ?? books[0]
+  const readingProgress = featuredBook ? Math.round((featuredBook.pagesRead / featuredBook.totalPages) * 100) : 0
+  const khanProgress = khanUnits.length ? Math.round(khanUnits.reduce((sum, unit) => sum + unit.progress, 0) / khanUnits.length) : 0
+  const prepProgress = prepUnits.length ? Math.round(prepUnits.reduce((sum, unit) => sum + unit.progress, 0) / prepUnits.length) : 0
 
   return (
     <>
@@ -35,7 +55,7 @@ export function BooksPage({ books, resources }: BooksPageProps) {
       <section className="stats-grid stats-grid--four">
         <StatCard label="Khan pathway" value={`${khanProgress}%`} detail={`${khanUnits.filter((unit) => unit.status === 'Completed').length} units completed`} icon={GraduationCap} tone="violet" />
         <StatCard label="Prep book" value={`${prepProgress}%`} detail="Chapters + end drills" icon={BookOpenCheck} tone="teal" />
-        <StatCard label="Current read" value={`${readingProgress}%`} detail={currentBook.title} icon={BookHeart} tone="gold" />
+        <StatCard label="Current read" value={`${readingProgress}%`} detail={featuredBook?.title ?? 'Not selected'} icon={BookHeart} tone="gold" />
         <StatCard label="Pages this week" value="54 / 70" detail="16 pages to goal" icon={Library} tone="blue" />
       </section>
 
