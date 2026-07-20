@@ -3,6 +3,7 @@ import type {
   ParentPlanningInputs,
   PlanningDraftContent,
   PlanningTaskDraft,
+  PracticeTest,
   RecommendationEvidenceItem,
   RecommendationEvidenceSummary,
   Skill,
@@ -50,7 +51,7 @@ function recentMistakes(skill: Skill, drills: Drill[], targetDate: string) {
     .flatMap((drill) => drill.mistakes ?? [])
 }
 
-function rankSkill(skill: Skill, drills: Drill[], targetDate: string): RecommendationEvidenceItem {
+function rankSkill(skill: Skill, drills: Drill[], practiceTests: PracticeTest[], targetDate: string): RecommendationEvidenceItem {
   let priorityScore = statusScore[skill.combinedStatus]
   const reasons: string[] = [`Coaching status: ${skill.combinedStatus}`]
 
@@ -101,6 +102,16 @@ function rankSkill(skill: Skill, drills: Drill[], targetDate: string): Recommend
   if (timingMistakes) {
     priorityScore += Math.min(8, timingMistakes * 2)
     reasons.push(`${timingMistakes} recent execution ${timingMistakes === 1 ? 'mistake' : 'mistakes'}`)
+  }
+
+  const recentTestMistakes = [...practiceTests]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 3)
+    .flatMap((test) => test.mistakes)
+    .filter((mistake) => mistake.skillTopic === skill.name)
+  if (recentTestMistakes.length) {
+    priorityScore += Math.min(18, recentTestMistakes.length * 6)
+    reasons.push(`${recentTestMistakes.length} recent full-test ${recentTestMistakes.length === 1 ? 'mistake' : 'mistakes'}`)
   }
 
   return {
@@ -169,11 +180,12 @@ export function buildRecommendedPlan(
   student: Student,
   skills: Skill[],
   drills: Drill[],
+  practiceTests: PracticeTest[],
   targetDate: string,
   inputs: ParentPlanningInputs,
 ): RecommendedPlan {
   const ranked = skills
-    .map((skill) => rankSkill(skill, drills, targetDate))
+    .map((skill) => rankSkill(skill, drills, practiceTests, targetDate))
     .sort((a, b) => b.priorityScore - a.priorityScore || a.skillName.localeCompare(b.skillName))
 
   const daysRemaining = daysBetween(targetDate, student.testDate)

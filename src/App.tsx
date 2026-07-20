@@ -92,26 +92,29 @@ function Dashboard({ bundle, demoMode, onDataChanged }: { bundle: DashboardBundl
             tasks={bundle.todayTasks}
             plan={bundle.studyPlan}
             practiceTests={bundle.practiceTests}
+            drills={bundle.drills}
             skills={bundle.skills}
             completedTaskIds={new Set([...completedTaskIds].filter((id) => allTodayTaskIds.has(id)))}
             onToggleTask={toggleTask}
             onViewWeek={() => navigate('week')}
+            canRecordResults={!demoMode}
+            onResultSaved={onDataChanged ?? (() => undefined)}
           />
         )
       case 'week':
-        return <WeekPage plan={bundle.studyPlan} completedTaskIds={completedTaskIds} onToggleTask={toggleTask} />
+        return <WeekPage plan={bundle.studyPlan} completedTaskIds={completedTaskIds} onToggleTask={toggleTask} studentId={!demoMode ? bundle.student.id : undefined} skills={bundle.skills} drills={bundle.drills} practiceTests={bundle.practiceTests} onResultSaved={!demoMode ? onDataChanged : undefined} />
       case 'scores':
         return <ScoresPage tests={bundle.practiceTests} targetScore={bundle.student.targetScore} />
       case 'reading-writing':
-        return <SkillPage key="reading-writing" studentId={bundle.student.id} section="Reading & Writing" allSkills={bundle.skills} drills={bundle.drills} tests={bundle.practiceTests} canRecordResults={!demoMode} onResultSaved={onDataChanged ?? (() => undefined)} />
+        return <SkillPage key="reading-writing" section="Reading & Writing" allSkills={bundle.skills} drills={bundle.drills} tests={bundle.practiceTests} />
       case 'math':
-        return <SkillPage key="math" studentId={bundle.student.id} section="Math" allSkills={bundle.skills} drills={bundle.drills} tests={bundle.practiceTests} canRecordResults={!demoMode} onResultSaved={onDataChanged ?? (() => undefined)} />
+        return <SkillPage key="math" section="Math" allSkills={bundle.skills} drills={bundle.drills} tests={bundle.practiceTests} />
       case 'books':
         return <BooksPage books={bundle.books} resources={bundle.learningResources} />
       case 'planner':
         return canPlan
-          ? <PlannerPage student={bundle.student} skills={bundle.skills} drills={bundle.drills} onPublished={onDataChanged ?? (() => undefined)} />
-          : <TodayPage student={bundle.student} tasks={bundle.todayTasks} plan={bundle.studyPlan} practiceTests={bundle.practiceTests} skills={bundle.skills} completedTaskIds={new Set([...completedTaskIds].filter((id) => allTodayTaskIds.has(id)))} onToggleTask={toggleTask} onViewWeek={() => navigate('week')} />
+          ? <PlannerPage student={bundle.student} skills={bundle.skills} drills={bundle.drills} practiceTests={bundle.practiceTests} onPublished={onDataChanged ?? (() => undefined)} />
+          : <TodayPage student={bundle.student} tasks={bundle.todayTasks} plan={bundle.studyPlan} practiceTests={bundle.practiceTests} drills={bundle.drills} skills={bundle.skills} completedTaskIds={new Set([...completedTaskIds].filter((id) => allTodayTaskIds.has(id)))} onToggleTask={toggleTask} onViewWeek={() => navigate('week')} canRecordResults={!demoMode} onResultSaved={onDataChanged ?? (() => undefined)} />
     }
   }
 

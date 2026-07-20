@@ -15,6 +15,7 @@ import type {
   ParentPlanningInputs,
   PlanningDraftContent,
   PlanningDraftRecord,
+  PracticeTestResultInput,
   RecommendationEvidenceSummary,
   PracticeTest,
   Section,
@@ -168,6 +169,7 @@ export async function loadStudentDashboard(student: Student): Promise<DashboardB
   const mistakeRows = rows(testMistakesResult.data)
   const practiceTests: PracticeTest[] = rows(testsResult.data).map((test) => ({
     id: String(test.id),
+    taskId: test.task_id ? String(test.task_id) : undefined,
     date: String(test.test_date),
     name: String(test.name),
     totalScore: Number(test.total_score),
@@ -212,6 +214,7 @@ export async function loadStudentDashboard(student: Student): Promise<DashboardB
   const drillMistakes = rows(drillMistakesResult.data)
   const drills: Drill[] = rows(drillsResult.data).map((drill) => ({
     id: String(drill.id),
+    taskId: drill.task_id ? String(drill.task_id) : undefined,
     date: String(drill.drill_date),
     section: value<Section>(drill, 'section'),
     domain: String(drill.domain),
@@ -331,6 +334,7 @@ export async function recordDrillResult(studentId: string, result: DrillResultIn
   const { data, error } = await client().rpc('record_drill_result', {
     target_student_id: studentId,
     result: {
+      taskId: result.taskId ?? null,
       drillDate: result.date,
       skillId: result.skillId,
       difficulty: result.difficulty,
@@ -342,6 +346,31 @@ export async function recordDrillResult(studentId: string, result: DrillResultIn
       notes: result.notes.trim() || null,
       mistakes: result.mistakes.map((mistake) => ({
         questionNumber: mistake.questionNumber ?? null,
+        classification: mistake.classification,
+        note: mistake.note.trim() || null,
+      })),
+    },
+  })
+
+  if (error) throw new Error(error.message)
+  return String(data)
+}
+
+export async function recordPracticeTestResult(studentId: string, result: PracticeTestResultInput) {
+  const { data, error } = await client().rpc('record_practice_test_result', {
+    target_student_id: studentId,
+    result: {
+      taskId: result.taskId ?? null,
+      testDate: result.date,
+      name: result.name.trim(),
+      totalScore: result.totalScore,
+      readingWritingScore: result.readingWritingScore,
+      mathScore: result.mathScore,
+      reliabilityNote: result.reliabilityNote.trim() || null,
+      mistakes: result.mistakes.map((mistake) => ({
+        questionNumber: mistake.questionNumber,
+        module: mistake.module ?? null,
+        skillId: mistake.skillId,
         classification: mistake.classification,
         note: mistake.note.trim() || null,
       })),
