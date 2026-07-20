@@ -125,6 +125,7 @@ function rankSkill(skill: Skill, drills: Drill[], practiceTests: PracticeTest[],
 }
 
 function choosePriorities(ranked: RecommendationEvidenceItem[], taskCount: number) {
+  if (taskCount <= 0) return []
   if (taskCount < 2 || ranked.length < 2) return ranked.slice(0, 1)
   const first = ranked[0]
   const otherSection = ranked.find((candidate) => candidate.section !== first.section && candidate.priorityScore >= first.priorityScore - 18)
@@ -136,30 +137,110 @@ function choosePriorities(ranked: RecommendationEvidenceItem[], taskCount: numbe
   return chosen.slice(0, taskCount)
 }
 
-function makeSkillTask(
+function isReadyForHard(skill: Skill, drills: Drill[], targetDate: string) {
+  const targetTime = new Date(`${targetDate}T12:00:00`).getTime()
+  const recentFoundationWork = drills
+    .filter((drill) => drill.skillTopic === skill.name
+      && drill.difficulty !== 'Hard'
+      && new Date(`${drill.date}T12:00:00`).getTime() < targetTime)
+    .sort((a, b) => b.date.localeCompare(a.date))
+
+  let attempted = 0
+  let correct = 0
+  for (const drill of recentFoundationWork) {
+    attempted += drill.attempted
+    correct += drill.correct
+    if (attempted >= 20) break
+  }
+
+  return attempted >= 20 && (correct / attempted) * 100 >= 95
+}
+
+function drillQuestionMix(minutes: number, hardReady: boolean) {
+  const questionCount = minutes >= 20 ? 10 : minutes >= 15 ? 8 : 6
+  if (hardReady) {
+    const medium = Math.ceil(questionCount / 2)
+    return { questionCount, detail: `${medium} Medium and ${questionCount - medium} Hard` }
+  }
+  const easy = Math.floor(questionCount / 2)
+  return { questionCount, detail: `${easy} Easy and ${questionCount - easy} Medium` }
+}
+
+function learningTopic(skill: Skill) {
+  const continuation = skill.nextStep.match(/^(?:finish|continue)\s+(.+?)(?:, then|\. |\.$)/i)?.[1]
+  if (!continuation) return skill.name
+  return continuation.charAt(0).toUpperCase() + continuation.slice(1)
+}
+
+function makeSkillTasks(
   priority: RecommendationEvidenceItem,
   skill: Skill,
   drills: Drill[],
   targetDate: string,
   minutes: number,
-): PlanningTaskDraft {
+): PlanningTaskDraft[] {
   const mistakes = recentMistakes(skill, drills, targetDate)
   const hasConceptGap = mistakes.some((mistake) => ['Not Yet Taught', 'Concept Gap'].includes(mistake.classification))
     || ['not_yet_taught', 'learning'].includes(skill.conceptState)
     || skill.drillEvidence.rating === 'Needs work'
-  const category = hasConceptGap ? 'Learn' : skill.trend === 'down' ? 'Review' : 'Drill'
-  const resultTarget = category === 'Drill'
-    ? 'Complete a focused 8–12 question set, then classify every miss before checking the explanation.'
-    : 'Review one worked example, explain the method aloud, then complete 5–8 untimed questions and classify every miss.'
+  const learningMinutes = hasConceptGap && minutes >= 20 ? (minutes >= 30 ? 15 : 10) : hasConceptGap ? minutes : 0
+  const drillMinutes = minutes - learningMinutes
+  const tasks: PlanningTaskDraft[] = []
 
+  if (learningMinutes) {
+    const topic = learningTopic(skill)
+    tasks.push({
+      title: `${topic}: learn the concept`,
+      description: `${skill.nextStep || `Review one worked example for ${priority.skillName}.`} Explain the method aloud and write one rule or takeaway. The drill is a separate assignment.`,
+      category: 'Learn',
+      section: priority.section,
+      minutes: learningMinutes,
+      resource: 'Khan Academy or current prep resource',
+      skillIds: [priority.skillId],
+    })
+  }
+
+  if (drillMinutes) {
+    const hardReady = isReadyForHard(skill, drills, targetDate)
+    const mix = drillQuestionMix(drillMinutes, hardReady)
+    const thresholdMessage = hardReady
+      ? 'You earned the move to Hard work by reaching at least 95% on recent Easy/Medium practice.'
+      : 'Hard questions stay locked until your recent Easy/Medium work reaches at least 95%.'
+    tasks.push({
+      title: `${priority.skillName}: ${mix.questionCount}-question drill`,
+      description: `Complete exactly ${mix.questionCount} questions: ${mix.detail}. ${thresholdMessage} Classify every miss before reading the explanation.`,
+      category: 'Drill',
+      section: priority.section,
+      minutes: drillMinutes,
+      resource: 'College Board Question Bank',
+      skillIds: [priority.skillId],
+    })
+  }
+
+  return tasks
+}
+
+function readingTask(minutes: number): PlanningTaskDraft {
   return {
-    title: `${priority.skillName}: ${category === 'Learn' ? 'learn, then practice' : category.toLowerCase()}`,
-    description: resultTarget,
-    category,
-    section: priority.section,
+    title: 'Daily independent reading',
+    description: `Read the current book for ${minutes} uninterrupted minutes. Record the starting page, ending page, and a one-sentence summary.`,
+    category: 'Reading',
+    section: null,
     minutes,
-    resource: category === 'Learn' ? 'Khan Academy or current prep resource' : 'College Board Question Bank',
-    skillIds: [priority.skillId],
+    resource: 'Current independent-reading book',
+    skillIds: [],
+  }
+}
+
+function parentPriorityTask(description: string, minutes: number): PlanningTaskDraft {
+  return {
+    title: 'Parent priority',
+    description,
+    category: 'Review',
+    section: null,
+    minutes,
+    resource: null,
+    skillIds: [],
   }
 }
 
@@ -195,40 +276,36 @@ export function buildRecommendedPlan(
     : daysRemaining <= 75 || scoreGap >= 150
       ? 'focused'
       : 'steady'
-  const desiredTaskCount = inputs.availableMinutes >= 75 || (inputs.availableMinutes >= 60 && urgency !== 'steady')
+  const readingMinutes = Math.min(20, inputs.availableMinutes)
+  const includesReadingRequest = /\bread(?:ing)?\b/i.test(inputs.mustInclude)
+  const includeParentTask = Boolean(inputs.mustInclude.trim()) && !includesReadingRequest
+  const parentTaskMinutes = includeParentTask && inputs.availableMinutes - readingMinutes >= 25 ? 15 : 0
+  const coachingMinutes = Math.max(0, inputs.availableMinutes - readingMinutes - parentTaskMinutes)
+  const capacityTaskCount = Math.floor(coachingMinutes / 20)
+  const desiredTaskCount = coachingMinutes >= 60 || (coachingMinutes >= 40 && urgency !== 'steady')
     ? 3
-    : inputs.availableMinutes >= 35
+    : coachingMinutes >= 35
       ? 2
-      : 1
-  const priorities = choosePriorities(ranked, desiredTaskCount)
-  const includeParentTask = Boolean(inputs.mustInclude.trim()) && desiredTaskCount > priorities.length
-  const taskCount = priorities.length + (includeParentTask ? 1 : 0)
-  const minuteSplit = splitMinutes(inputs.availableMinutes, Math.max(1, taskCount))
+      : coachingMinutes >= 10
+        ? 1
+        : 0
+  const priorityCount = Math.min(desiredTaskCount, Math.max(1, capacityTaskCount || desiredTaskCount))
+  const priorities = choosePriorities(ranked, priorityCount)
+  const minuteSplit = priorities.length ? splitMinutes(coachingMinutes, priorities.length) : []
   const byId = new Map(skills.map((skill) => [skill.id, skill]))
-  const tasks = priorities.map((priority, index) => makeSkillTask(priority, byId.get(priority.skillId)!, drills, targetDate, minuteSplit[index]))
+  const tasks = priorities.flatMap((priority, index) => makeSkillTasks(priority, byId.get(priority.skillId)!, drills, targetDate, minuteSplit[index]))
 
-  if (includeParentTask) {
-    tasks.push({
-      title: 'Parent priority',
-      description: inputs.mustInclude.trim(),
-      category: 'Review',
-      section: null,
-      minutes: minuteSplit[tasks.length],
-      resource: null,
-      skillIds: [],
-    })
-  } else if (inputs.mustInclude.trim() && tasks[0]) {
-    tasks[0] = { ...tasks[0], description: `${tasks[0].description} Parent request: ${inputs.mustInclude.trim()}` }
-  }
+  if (includeParentTask && parentTaskMinutes) tasks.push(parentPriorityTask(inputs.mustInclude.trim(), parentTaskMinutes))
+  if (readingMinutes) tasks.push(readingTask(readingMinutes))
 
   const focusNames = priorities.map((priority) => priority.skillName)
   const rationaleParts = priorities.map((priority) => `${priority.skillName}: ${priority.reasons.slice(0, 3).join('; ')}`)
 
   return {
     draft: {
-      focus: focusNames.length ? focusNames.join(' + ') : 'Balanced PSAT practice',
+      focus: focusNames.length ? `${focusNames.join(' + ')} + Daily reading` : 'Daily independent reading',
       dayType: inputs.dayType,
-      coachNote: `Focus on careful work today. Record the result and the reason for each mistake so tomorrow’s plan can adjust.`,
+      coachNote: `Accuracy before difficulty: reach at least 95% on Easy/Medium work before moving to Hard questions. Complete learning and drilling as separate assignments, and record every result and mistake.`,
       rationale: `${daysRemaining} days remain until the test. The current score is ${student.currentScore}, the target is ${student.targetScore}, and the gap is ${scoreGap} points. The rules selected ${rationaleParts.join(' | ')}.`,
       tasks,
     },
@@ -244,6 +321,9 @@ export function buildRecommendedPlan(
         'Recent low accuracy, downward trends, concept mistakes, and long practice gaps increase priority.',
         'When priorities are close, the plan balances Math and Reading & Writing.',
         'The score goal and days remaining determine whether the session stays narrow or covers a third priority.',
+        'Learning a concept and drilling it are separate assignments.',
+        'Hard questions stay locked until recent Easy/Medium work reaches at least 95%.',
+        'Daily independent reading is included in every plan.',
         'The plan never exceeds the parent’s available minutes.',
       ],
       priorities: ranked.slice(0, 5),
