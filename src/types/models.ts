@@ -156,6 +156,42 @@ export interface Drill {
   notes?: string
 }
 
+export interface DrillResultMistakeInput {
+  questionNumber?: number
+  classification: ErrorClassification
+  note: string
+}
+
+export interface DrillResultInput {
+  date: string
+  skillId: string
+  difficulty: Difficulty
+  source: string
+  attempted: number
+  correct: number
+  timeLimitMinutes?: number
+  timeSpentMinutes?: number
+  notes: string
+  mistakes: DrillResultMistakeInput[]
+}
+
+export interface RecommendationEvidenceItem {
+  skillId: string
+  skillName: string
+  section: Section
+  domain: string
+  priorityScore: number
+  reasons: string[]
+}
+
+export interface RecommendationEvidenceSummary {
+  source: 'rules-v1'
+  generatedAt: string
+  daysRemaining: number
+  rulesApplied: string[]
+  priorities: RecommendationEvidenceItem[]
+}
+
 export interface LearningResourceUnit {
   id: string
   provider: 'Khan Academy' | 'Prep book'

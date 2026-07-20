@@ -8,12 +8,14 @@ import type {
   DayType,
   Difficulty,
   Drill,
+  DrillResultInput,
   ErrorClassification,
   EvidenceRating,
   LearningResourceUnit,
   ParentPlanningInputs,
   PlanningDraftContent,
   PlanningDraftRecord,
+  RecommendationEvidenceSummary,
   PracticeTest,
   Section,
   Skill,
@@ -325,6 +327,31 @@ export async function setTaskCompletion(studentId: string, taskId: string, compl
   if (error) throw new Error(error.message)
 }
 
+export async function recordDrillResult(studentId: string, result: DrillResultInput) {
+  const { data, error } = await client().rpc('record_drill_result', {
+    target_student_id: studentId,
+    result: {
+      drillDate: result.date,
+      skillId: result.skillId,
+      difficulty: result.difficulty,
+      source: result.source.trim(),
+      attempted: result.attempted,
+      correct: result.correct,
+      timeLimitMinutes: result.timeLimitMinutes ?? null,
+      timeSpentMinutes: result.timeSpentMinutes ?? null,
+      notes: result.notes.trim() || null,
+      mistakes: result.mistakes.map((mistake) => ({
+        questionNumber: mistake.questionNumber ?? null,
+        classification: mistake.classification,
+        note: mistake.note.trim() || null,
+      })),
+    },
+  })
+
+  if (error) throw new Error(error.message)
+  return String(data)
+}
+
 function mapPlanningDraft(row: Row): PlanningDraftRecord {
   return {
     id: String(row.id),
@@ -385,6 +412,30 @@ export async function createBlankPlanningDraft(
       parent_inputs: inputs,
       draft: content,
       evidence_summary: { source: 'parent' },
+    })
+    .select('*')
+    .single()
+
+  if (error) throw new Error(error.message)
+  return mapPlanningDraft(data as Row)
+}
+
+export async function createRecommendedPlanningDraft(
+  studentId: string,
+  targetDate: string,
+  inputs: ParentPlanningInputs,
+  draft: PlanningDraftContent,
+  evidenceSummary: RecommendationEvidenceSummary,
+) {
+  const { data, error } = await client()
+    .from('planning_drafts')
+    .insert({
+      student_id: studentId,
+      target_date: targetDate,
+      parent_inputs: inputs,
+      draft,
+      evidence_summary: evidenceSummary,
+      model: 'transparent-rules-v1',
     })
     .select('*')
     .single()

@@ -16,12 +16,13 @@ import {
 import { PageHeader } from '../components/ui'
 import {
   createBlankPlanningDraft,
+  createRecommendedPlanningDraft,
   loadLatestPlanningDraft,
   publishPlanningDraft,
-  requestAiPlanningDraft,
   savePlanningDraft,
 } from '../services/studentRepository'
 import type {
+  Drill,
   ParentPlanningInputs,
   PlanningDraftContent,
   PlanningDraftRecord,
@@ -31,10 +32,12 @@ import type {
   TaskCategory,
 } from '../types/models'
 import { formatDate } from '../utils/format'
+import { buildRecommendedPlan } from '../utils/recommendationEngine'
 
 interface PlannerPageProps {
   student: Student
   skills: Skill[]
+  drills: Drill[]
   onPublished: () => void
 }
 
@@ -90,12 +93,12 @@ function validateDraft(record: PlanningDraftRecord | null, availableMinutes: num
   return null
 }
 
-export function PlannerPage({ student, skills, onPublished }: PlannerPageProps) {
+export function PlannerPage({ student, skills, drills, onPublished }: PlannerPageProps) {
   const [targetDate, setTargetDate] = useState(() => addDays(localDateKey(), 1))
   const [inputs, setInputs] = useState<ParentPlanningInputs>(initialInputs)
   const [record, setRecord] = useState<PlanningDraftRecord | null>(null)
   const [loading, setLoading] = useState(true)
-  const [working, setWorking] = useState<'ai' | 'blank' | 'save' | 'publish' | null>(null)
+  const [working, setWorking] = useState<'recommend' | 'blank' | 'save' | 'publish' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [reviewed, setReviewed] = useState(false)
@@ -147,13 +150,20 @@ export function PlannerPage({ student, skills, onPublished }: PlannerPageProps) 
     }
   }
 
-  const createWithAi = async () => {
-    const nextRecord = await run('ai', () => requestAiPlanningDraft(student.id, targetDate, inputs))
+  const createRecommended = async () => {
+    const recommendation = buildRecommendedPlan(student, skills, drills, targetDate, inputs)
+    const nextRecord = await run('recommend', () => createRecommendedPlanningDraft(
+      student.id,
+      targetDate,
+      inputs,
+      recommendation.draft,
+      recommendation.evidenceSummary,
+    ))
     if (!nextRecord) return
     setRecord(nextRecord)
     setInputs(nextRecord.parentInputs)
     setReviewed(false)
-    setMessage('AI draft created. Nothing has been published—review and edit every assignment first.')
+    setMessage('Recommended draft created from the current evidence. Review and edit every assignment before publishing.')
   }
 
   const createBlank = async () => {
@@ -213,7 +223,7 @@ export function PlannerPage({ student, skills, onPublished }: PlannerPageProps) 
         <ShieldCheck size={18} />
         <div>
           <strong>Draft first, publish second</strong>
-          <p>AI can suggest homework, but only your reviewed version reaches the student dashboard.</p>
+          <p>The rules can recommend homework, but only your reviewed version reaches the student dashboard.</p>
         </div>
       </section>
 
@@ -257,8 +267,8 @@ export function PlannerPage({ student, skills, onPublished }: PlannerPageProps) 
           </label>
 
           <div className="planner-create-actions">
-            <button className="button button--primary" disabled={Boolean(working) || inputs.availableMinutes < 15 || inputs.availableMinutes > 180} onClick={() => void createWithAi()}>
-              {working === 'ai' ? <LoaderCircle className="spin" size={16} /> : <Sparkles size={16} />} Draft with AI
+            <button className="button button--primary" disabled={Boolean(working) || inputs.availableMinutes < 15 || inputs.availableMinutes > 180} onClick={() => void createRecommended()}>
+              {working === 'recommend' ? <LoaderCircle className="spin" size={16} /> : <Sparkles size={16} />} Build recommended plan
             </button>
             <button className="button button--secondary" disabled={Boolean(working)} onClick={() => void createBlank()}>
               {working === 'blank' ? <LoaderCircle className="spin" size={16} /> : <FilePenLine size={16} />} Start blank
@@ -284,7 +294,7 @@ export function PlannerPage({ student, skills, onPublished }: PlannerPageProps) 
             <div className="planner-empty">
               <div><Lightbulb size={25} /></div>
               <h3>No draft for {formatDate(targetDate)}</h3>
-              <p>Set the time and context, then create an AI draft or start with a blank plan.</p>
+              <p>Set the time and context, then build a recommendation from the current evidence or start with a blank plan.</p>
             </div>
           ) : (
             <div className={published ? 'planner-form planner-form--locked' : 'planner-form'}>
@@ -303,6 +313,27 @@ export function PlannerPage({ student, skills, onPublished }: PlannerPageProps) 
 
               {record.draft.rationale && (
                 <div className="planner-rationale"><Lightbulb size={17} /><div><strong>Why this plan</strong><p>{record.draft.rationale}</p></div></div>
+              )}
+
+              {record.evidenceSummary.source === 'rules-v1' && Array.isArray(record.evidenceSummary.priorities) && (
+                <details className="planner-evidence" open>
+                  <summary><span><Sparkles size={16} /> How the recommendation was calculated</span><small>Transparent rules · recalculated from saved results</small></summary>
+                  <div className="planner-evidence__body">
+                    <div className="planner-evidence__rules">
+                      {(Array.isArray(record.evidenceSummary.rulesApplied) ? record.evidenceSummary.rulesApplied : []).map((rule) => <span key={String(rule)}><CheckCircle2 size={13} /> {String(rule)}</span>)}
+                    </div>
+                    <div className="planner-evidence__priorities">
+                      {(record.evidenceSummary.priorities as Array<Record<string, unknown>>).slice(0, 3).map((priority, index) => (
+                        <article key={String(priority.skillId)}>
+                          <span>Priority {index + 1}</span>
+                          <strong>{String(priority.skillName)}</strong>
+                          <small>{String(priority.section)} · {String(priority.domain)}</small>
+                          <ul>{(Array.isArray(priority.reasons) ? priority.reasons : []).map((reason) => <li key={String(reason)}>{String(reason)}</li>)}</ul>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                </details>
               )}
 
               <div className="planner-task-heading">
