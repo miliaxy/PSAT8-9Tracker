@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './auth/AuthContext'
 import { AuthScreen } from './auth/AuthScreen'
 import { AppShell, type ViewId } from './components/AppShell'
 import { demoDashboardBundle } from './data/demoData'
+import { supabase } from './lib/supabase'
 import { loadAccessibleStudents, loadStudentDashboard, setTaskCompletion } from './services/studentRepository'
 import type { DashboardBundle } from './types/models'
 
@@ -77,10 +78,12 @@ function Dashboard({ bundle, demoMode, onDataChanged }: { bundle: DashboardBundl
       return
     }
 
-    void setTaskCompletion(bundle.student.id, taskId, !wasCompleted).catch(() => {
-      setCompletedTaskIds(completedTaskIds)
-      setTaskError('That task change could not be saved. Please try again.')
-    })
+    void setTaskCompletion(bundle.student.id, taskId, !wasCompleted)
+      .then(() => onDataChanged?.())
+      .catch(() => {
+        setCompletedTaskIds(completedTaskIds)
+        setTaskError('That task change could not be saved. Please try again.')
+      })
   }
 
   const renderView = () => {
@@ -144,6 +147,7 @@ function PrivateWorkspace() {
   const [bundle, setBundle] = useState<DashboardBundle | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'empty' | 'error'>('loading')
   const [reload, setReload] = useState(0)
+  const studentId = bundle?.student.id
 
   useEffect(() => {
     if (status !== 'authenticated') return
@@ -169,8 +173,44 @@ function PrivateWorkspace() {
     return () => { active = false }
   }, [reload, status])
 
+  useEffect(() => {
+    if (status !== 'authenticated' || !studentId || !supabase) return
+    const realtimeClient = supabase
+
+    const channel = realtimeClient
+      .channel(`daily-task-completion-${studentId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'daily_tasks',
+          filter: `student_id=eq.${studentId}`,
+        },
+        () => setReload((value) => value + 1),
+      )
+      .subscribe()
+
+    return () => {
+      void realtimeClient.removeChannel(channel)
+    }
+  }, [status, studentId])
+
+  useEffect(() => {
+    if (status !== 'authenticated') return
+    const refreshOnFocus = () => setReload((value) => value + 1)
+    window.addEventListener('focus', refreshOnFocus)
+    return () => window.removeEventListener('focus', refreshOnFocus)
+  }, [status])
+
   if (state === 'loading') return <div className="workspace-state"><div className="page-loading"><span />Opening your private workspace…</div></div>
-  if (state === 'ready' && bundle) return <Dashboard bundle={bundle} demoMode={false} onDataChanged={() => setReload((value) => value + 1)} />
+  if (state === 'ready' && bundle) {
+    const completionRevision = bundle.studyPlan.days
+      .flatMap((day) => day.tasks)
+      .map((task) => `${task.id}:${task.initialCompleted ? '1' : '0'}`)
+      .join('|')
+    return <Dashboard key={completionRevision} bundle={bundle} demoMode={false} onDataChanged={() => setReload((value) => value + 1)} />
+  }
 
   return (
     <main className="workspace-state">
