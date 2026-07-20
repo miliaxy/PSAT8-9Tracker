@@ -221,11 +221,18 @@ function makeSkillTasks(
   minutes: number,
 ): PlanningTaskDraft[] {
   const mistakes = recentMistakes(skill, drills, targetDate)
+  const conceptInProgress = ['not_yet_taught', 'learning'].includes(skill.conceptState)
   const hasConceptGap = mistakes.some((mistake) => ['Not Yet Taught', 'Concept Gap'].includes(mistake.classification))
-    || ['not_yet_taught', 'learning'].includes(skill.conceptState)
+    || conceptInProgress
     || skill.drillEvidence.rating === 'Needs work'
-  const learningMinutes = hasConceptGap && minutes >= 20 ? (minutes >= 30 ? 15 : 10) : hasConceptGap ? minutes : 0
-  const drillMinutes = minutes - learningMinutes
+  const learningMinutes = conceptInProgress
+    ? minutes
+    : hasConceptGap && minutes >= 20
+      ? (minutes >= 30 ? 15 : 10)
+      : hasConceptGap
+        ? minutes
+        : 0
+  const drillMinutes = conceptInProgress ? 0 : minutes - learningMinutes
   const tasks: PlanningTaskDraft[] = []
 
   if (learningMinutes) {
@@ -363,6 +370,7 @@ export function buildRecommendedPlan(
         'When priorities are close, the plan balances Math and Reading & Writing.',
         'The score goal and days remaining determine whether the session stays narrow or covers a third priority.',
         'Learning a concept and drilling it are separate assignments.',
+        'A skill marked Not yet taught or Learning receives concept work only; drilling waits until the concept is complete.',
         'Hard questions stay locked until recent Easy/Medium work reaches at least 95%.',
         'Drill timers use PSAT 8/9 section pacing, with faster Easy/Medium targets that bank time for Hard questions.',
         'Assigned drill minutes include answering time only; review is optional and student-directed.',
