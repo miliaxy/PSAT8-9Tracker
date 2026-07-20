@@ -39,6 +39,12 @@ export function SkillPage({ section, allSkills, drills, tests }: SkillPageProps)
       (statusFilter === 'attention' && !['Strong', 'Mastered'].includes(skill.combinedStatus))
     return matchesDomain && matchesStatus
   })
+  const groupedSkills = domains
+    .map((domain) => ({
+      domain,
+      skills: filteredSkills.filter((skill) => skill.domain === domain),
+    }))
+    .filter((group) => group.skills.length > 0)
 
   const attempted = sectionDrills.reduce((sum, drill) => sum + drill.attempted, 0)
   const correct = sectionDrills.reduce((sum, drill) => sum + drill.correct, 0)
@@ -110,7 +116,12 @@ export function SkillPage({ section, allSkills, drills, tests }: SkillPageProps)
 
       <section className="panel skills-panel">
         <div className="panel__header skills-panel__header">
-          <div><span className="eyebrow">Skill-level coaching</span><h2>{filteredSkills.length} skills shown</h2></div>
+          <div>
+            <span className="eyebrow">Skill-level coaching</span>
+            <h2>
+              {filteredSkills.length} {filteredSkills.length === 1 ? 'skill' : 'skills'} across {groupedSkills.length} {groupedSkills.length === 1 ? 'domain' : 'domains'}
+            </h2>
+          </div>
           <div className="filters">
             <label>
               <Filter size={14} />
@@ -130,8 +141,18 @@ export function SkillPage({ section, allSkills, drills, tests }: SkillPageProps)
             </label>
           </div>
         </div>
-        <div className="skill-list">
-          {filteredSkills.map((skill) => <SkillCard skill={skill} key={skill.id} />)}
+        <div className="skill-domain-list">
+          {groupedSkills.map((group) => (
+            <section className="skill-domain-group" key={group.domain}>
+              <div className="skill-domain-group__header">
+                <div><span className="eyebrow">Domain</span><h3>{group.domain}</h3></div>
+                <span>{group.skills.length} {group.skills.length === 1 ? 'skill' : 'skills'}</span>
+              </div>
+              <div className="skill-list">
+                {group.skills.map((skill) => <SkillCard skill={skill} showDomain={false} key={skill.id} />)}
+              </div>
+            </section>
+          ))}
         </div>
       </section>
 

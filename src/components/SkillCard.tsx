@@ -3,7 +3,7 @@ import type { Skill } from '../types/models'
 import { formatDate, statusKey } from '../utils/format'
 import { ProgressBar, StatusBadge, TrendBadge } from './ui'
 
-export function SkillCard({ skill }: { skill: Skill }) {
+export function SkillCard({ skill, showDomain = true }: { skill: Skill; showDomain?: boolean }) {
   const drillAccuracy = skill.drillEvidence.recentAccuracy
   const testAccuracy = skill.practiceTestEvidence.recentAccuracy
 
@@ -11,7 +11,7 @@ export function SkillCard({ skill }: { skill: Skill }) {
     <article className="skill-card">
       <div className="skill-card__header">
         <div>
-          <span className="skill-card__domain">{skill.domain}</span>
+          {showDomain && <span className="skill-card__domain">{skill.domain}</span>}
           <h3>{skill.name}</h3>
           <p>{skill.description}</p>
         </div>
