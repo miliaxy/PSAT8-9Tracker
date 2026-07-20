@@ -1,5 +1,6 @@
 import type {
   Book,
+  DashboardBundle,
   DailyTask,
   Drill,
   LearningResourceUnit,
@@ -1035,3 +1036,14 @@ export const books: Book[] = [
     accent: '#e7963d',
   },
 ]
+
+export const demoDashboardBundle: DashboardBundle = {
+  student: demoStudent,
+  todayTasks,
+  studyPlan: demoStudyPlan,
+  practiceTests,
+  drills,
+  skills,
+  books,
+  learningResources,
+}

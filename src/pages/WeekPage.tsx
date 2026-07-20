@@ -20,22 +20,26 @@ const dayTypeLabels: Record<DayType, string> = {
 }
 
 export function WeekPage({ plan, completedTaskIds, onToggleTask }: WeekPageProps) {
-  const [openDay, setOpenDay] = useState('2026-07-18')
+  const today = new Date()
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const firstDay = plan.days[0]?.date ?? plan.weekOf
+  const lastDay = plan.days.at(-1)?.date ?? plan.weekOf
+  const [openDay, setOpenDay] = useState(plan.days.some((day) => day.date === todayKey) ? todayKey : firstDay)
   const tasks = plan.days.flatMap((day) => day.tasks)
   const completedCount = tasks.filter((task) => completedTaskIds.has(task.id)).length
   const totalMinutes = tasks.reduce((sum, task) => sum + task.minutes, 0)
   const completedMinutes = tasks
     .filter((task) => completedTaskIds.has(task.id))
     .reduce((sum, task) => sum + task.minutes, 0)
-  const progress = Math.round((completedCount / tasks.length) * 100)
+  const progress = tasks.length ? Math.round((completedCount / tasks.length) * 100) : 0
 
   return (
     <>
       <PageHeader
-        eyebrow="Week of July 13"
+        eyebrow={`Week of ${formatDate(plan.weekOf, { month: 'long', day: 'numeric' })}`}
         title="Your weekly game plan"
         description="A flexible rhythm that balances new learning, daily drills, spaced review, and real rest."
-        action={<span className="week-range"><CalendarCheck2 size={16} /> Jul 13–19</span>}
+        action={<span className="week-range"><CalendarCheck2 size={16} /> {formatDate(firstDay, { month: 'short', day: 'numeric' })}–{formatDate(lastDay, { month: 'short', day: 'numeric' })}</span>}
       />
 
       <section className="week-summary">
@@ -62,7 +66,7 @@ export function WeekPage({ plan, completedTaskIds, onToggleTask }: WeekPageProps
         <div className="panel__header">
           <div>
             <span className="eyebrow">Daily workload</span>
-            <h2>July 13–19</h2>
+            <h2>{formatDate(firstDay, { month: 'long', day: 'numeric' })}–{formatDate(lastDay, { month: 'long', day: 'numeric' })}</h2>
           </div>
           <div className="workload-legend" aria-label="Workload type legend">
             <span><i className="dot dot--normal" /> Normal</span>
@@ -75,7 +79,7 @@ export function WeekPage({ plan, completedTaskIds, onToggleTask }: WeekPageProps
         <div className="week-days">
           {plan.days.map((day) => {
             const isOpen = day.date === openDay
-            const isToday = day.date === '2026-07-18'
+            const isToday = day.date === todayKey
             const dayCompleted = day.tasks.filter((task) => completedTaskIds.has(task.id)).length
             const dayMinutes = day.tasks.reduce((sum, task) => sum + task.minutes, 0)
             const dayIsComplete = day.tasks.length > 0 && dayCompleted === day.tasks.length
