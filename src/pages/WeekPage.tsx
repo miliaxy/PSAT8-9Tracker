@@ -2,13 +2,18 @@ import { CalendarCheck2, ChevronDown, Clock3, RotateCcw, Sparkles } from 'lucide
 import { useState } from 'react'
 import { TaskCard } from '../components/TaskCard'
 import { PageHeader, ProgressBar } from '../components/ui'
-import type { DayType, StudyPlan } from '../types/models'
+import type { DayType, Drill, PracticeTest, Skill, StudyPlan } from '../types/models'
 import { formatDate } from '../utils/format'
 
 interface WeekPageProps {
   plan: StudyPlan
   completedTaskIds: Set<string>
   onToggleTask: (taskId: string) => void
+  studentId?: string
+  skills: Skill[]
+  drills: Drill[]
+  practiceTests: PracticeTest[]
+  onResultSaved?: () => void
 }
 
 const dayTypeLabels: Record<DayType, string> = {
@@ -19,7 +24,7 @@ const dayTypeLabels: Record<DayType, string> = {
   review: 'Review loop',
 }
 
-export function WeekPage({ plan, completedTaskIds, onToggleTask }: WeekPageProps) {
+export function WeekPage({ plan, completedTaskIds, onToggleTask, studentId, skills, drills, practiceTests, onResultSaved }: WeekPageProps) {
   const today = new Date()
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   const firstDay = plan.days[0]?.date ?? plan.weekOf
@@ -132,6 +137,10 @@ export function WeekPage({ plan, completedTaskIds, onToggleTask }: WeekPageProps
                           completed={completedTaskIds.has(task.id)}
                           onToggle={onToggleTask}
                           compact
+                          studentId={studentId}
+                          skills={skills}
+                          result={drills.find((drill) => drill.taskId === task.id) ?? practiceTests.find((test) => test.taskId === task.id)}
+                          onResultSaved={onResultSaved}
                         />
                       ))
                     ) : (

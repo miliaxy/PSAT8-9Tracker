@@ -27,6 +27,7 @@ export type TaskCategory =
   | 'Drill'
   | 'Review'
   | 'Test strategy'
+  | 'Practice test'
   | 'Reading'
 export type ErrorClassification =
   | 'Not Yet Taught'
@@ -114,6 +115,7 @@ export interface PracticeTestMistake {
 
 export interface PracticeTest {
   id: string
+  taskId?: string
   date: string
   name: string
   totalScore: number
@@ -140,6 +142,7 @@ export interface DrillMistake {
 
 export interface Drill {
   id: string
+  taskId?: string
   date: string
   section: Section
   domain: string
@@ -163,6 +166,7 @@ export interface DrillResultMistakeInput {
 }
 
 export interface DrillResultInput {
+  taskId?: string
   date: string
   skillId: string
   difficulty: Difficulty
@@ -173,6 +177,25 @@ export interface DrillResultInput {
   timeSpentMinutes?: number
   notes: string
   mistakes: DrillResultMistakeInput[]
+}
+
+export interface PracticeTestResultMistakeInput {
+  questionNumber: number
+  module?: 1 | 2
+  skillId: string
+  classification: ErrorClassification
+  note: string
+}
+
+export interface PracticeTestResultInput {
+  taskId?: string
+  date: string
+  name: string
+  totalScore: number
+  readingWritingScore: number
+  mathScore: number
+  reliabilityNote: string
+  mistakes: PracticeTestResultMistakeInput[]
 }
 
 export interface RecommendationEvidenceItem {

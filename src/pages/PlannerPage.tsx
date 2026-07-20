@@ -27,6 +27,7 @@ import type {
   PlanningDraftContent,
   PlanningDraftRecord,
   PlanningTaskDraft,
+  PracticeTest,
   Skill,
   Student,
   TaskCategory,
@@ -38,10 +39,11 @@ interface PlannerPageProps {
   student: Student
   skills: Skill[]
   drills: Drill[]
+  practiceTests: PracticeTest[]
   onPublished: () => void
 }
 
-const categories: TaskCategory[] = ['Learn', 'Drill', 'Review', 'Test strategy', 'Reading']
+const categories: TaskCategory[] = ['Learn', 'Drill', 'Review', 'Test strategy', 'Practice test', 'Reading']
 
 function localDateKey(date = new Date()) {
   const year = date.getFullYear()
@@ -93,7 +95,7 @@ function validateDraft(record: PlanningDraftRecord | null, availableMinutes: num
   return null
 }
 
-export function PlannerPage({ student, skills, drills, onPublished }: PlannerPageProps) {
+export function PlannerPage({ student, skills, drills, practiceTests, onPublished }: PlannerPageProps) {
   const [targetDate, setTargetDate] = useState(() => addDays(localDateKey(), 1))
   const [inputs, setInputs] = useState<ParentPlanningInputs>(initialInputs)
   const [record, setRecord] = useState<PlanningDraftRecord | null>(null)
@@ -151,7 +153,7 @@ export function PlannerPage({ student, skills, drills, onPublished }: PlannerPag
   }
 
   const createRecommended = async () => {
-    const recommendation = buildRecommendedPlan(student, skills, drills, targetDate, inputs)
+    const recommendation = buildRecommendedPlan(student, skills, drills, practiceTests, targetDate, inputs)
     const nextRecord = await run('recommend', () => createRecommendedPlanningDraft(
       student.id,
       targetDate,

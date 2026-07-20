@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { TaskCard } from '../components/TaskCard'
 import { PageHeader, ProgressBar, StatCard } from '../components/ui'
-import type { DailyTask, PracticeTest, Skill, Student, StudyPlan } from '../types/models'
+import type { DailyTask, Drill, PracticeTest, Skill, Student, StudyPlan } from '../types/models'
 import { daysBetween, formatDate, formatLongDate } from '../utils/format'
 
 interface TodayPageProps {
@@ -20,10 +20,13 @@ interface TodayPageProps {
   tasks: DailyTask[]
   plan: StudyPlan
   practiceTests: PracticeTest[]
+  drills: Drill[]
   skills: Skill[]
   completedTaskIds: Set<string>
   onToggleTask: (taskId: string) => void
   onViewWeek: () => void
+  canRecordResults: boolean
+  onResultSaved: () => void
 }
 
 function localDateKey(date = new Date()) {
@@ -39,7 +42,7 @@ function addDays(dateKey: string, days: number) {
   return localDateKey(date)
 }
 
-export function TodayPage({ student, tasks, plan, practiceTests, skills, completedTaskIds, onToggleTask, onViewWeek }: TodayPageProps) {
+export function TodayPage({ student, tasks, plan, practiceTests, drills, skills, completedTaskIds, onToggleTask, onViewWeek, canRecordResults, onResultSaved }: TodayPageProps) {
   const todayKey = localDateKey()
   const tomorrowKey = addDays(todayKey, 1)
   const tomorrow = plan.days.find((day) => day.date === tomorrowKey)
@@ -139,6 +142,10 @@ export function TodayPage({ student, tasks, plan, practiceTests, skills, complet
                 task={task}
                 completed={completedTaskIds.has(task.id)}
                 onToggle={onToggleTask}
+                studentId={canRecordResults ? student.id : undefined}
+                skills={skills}
+                result={drills.find((drill) => drill.taskId === task.id) ?? practiceTests.find((test) => test.taskId === task.id)}
+                onResultSaved={canRecordResults ? onResultSaved : undefined}
               />
             ))}
           </div>

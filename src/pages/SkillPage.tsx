@@ -10,25 +10,21 @@ import {
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { ScoreChart } from '../components/ScoreChart'
-import { DrillResultForm } from '../components/DrillResultForm'
 import { SkillCard } from '../components/SkillCard'
 import { PageHeader, StatCard, StatusBadge } from '../components/ui'
 import type { Drill, PracticeTest, Section, Skill } from '../types/models'
 import { formatDate } from '../utils/format'
 
 interface SkillPageProps {
-  studentId: string
   section: Section
   allSkills: Skill[]
   drills: Drill[]
   tests: PracticeTest[]
-  canRecordResults: boolean
-  onResultSaved: () => void
 }
 
 type StatusFilter = 'all' | 'attention' | 'strong'
 
-export function SkillPage({ studentId, section, allSkills, drills, tests, canRecordResults, onResultSaved }: SkillPageProps) {
+export function SkillPage({ section, allSkills, drills, tests }: SkillPageProps) {
   const sectionSkills = useMemo(() => allSkills.filter((skill) => skill.section === section), [allSkills, section])
   const sectionDrills = useMemo(() => drills.filter((drill) => drill.section === section), [drills, section])
   const domains = [...new Set(sectionSkills.map((skill) => skill.domain))]
@@ -76,8 +72,6 @@ export function SkillPage({ studentId, section, allSkills, drills, tests, canRec
         <StatCard label="Trending up" value={improvingSkills} detail="Skills gaining momentum" icon={Activity} tone="gold" />
         <StatCard label="Practice sessions" value={sectionDrills.length} detail="Most recent two weeks" icon={Clock3} tone="blue" />
       </section>
-
-      {canRecordResults && <DrillResultForm studentId={studentId} section={section} skills={allSkills} onSaved={onResultSaved} />}
 
       <section className="skill-overview-grid">
         <article className="panel skill-trend-panel">
