@@ -11,6 +11,9 @@ import type {
   ErrorClassification,
   EvidenceRating,
   LearningResourceUnit,
+  ParentPlanningInputs,
+  PlanningDraftContent,
+  PlanningDraftRecord,
   PracticeTest,
   Section,
   Skill,
@@ -318,4 +321,125 @@ export async function setTaskCompletion(studentId: string, taskId: string, compl
     .eq('id', taskId)
 
   if (error) throw new Error(error.message)
+}
+
+function mapPlanningDraft(row: Row): PlanningDraftRecord {
+  return {
+    id: String(row.id),
+    studentId: String(row.student_id),
+    targetDate: String(row.target_date),
+    status: value<PlanningDraftRecord['status']>(row, 'status'),
+    parentInputs: value<ParentPlanningInputs>(row, 'parent_inputs'),
+    draft: value<PlanningDraftContent>(row, 'draft'),
+    evidenceSummary: value<Record<string, unknown>>(row, 'evidence_summary') || {},
+    model: row.model ? String(row.model) : undefined,
+    publishedAt: row.published_at ? String(row.published_at) : undefined,
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  }
+}
+
+export async function loadLatestPlanningDraft(studentId: string, targetDate: string) {
+  const { data, error } = await client()
+    .from('planning_drafts')
+    .select('*')
+    .eq('student_id', studentId)
+    .eq('target_date', targetDate)
+    .in('status', ['draft', 'published'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw new Error(error.message)
+  return data ? mapPlanningDraft(data as Row) : null
+}
+
+export async function createBlankPlanningDraft(
+  studentId: string,
+  targetDate: string,
+  inputs: ParentPlanningInputs,
+) {
+  const content: PlanningDraftContent = {
+    focus: '',
+    dayType: inputs.dayType,
+    coachNote: '',
+    rationale: 'Parent-created draft.',
+    tasks: [{
+      title: '',
+      description: '',
+      category: 'Learn',
+      section: null,
+      minutes: Math.min(20, inputs.availableMinutes),
+      resource: null,
+      skillIds: [],
+    }],
+  }
+
+  const { data, error } = await client()
+    .from('planning_drafts')
+    .insert({
+      student_id: studentId,
+      target_date: targetDate,
+      parent_inputs: inputs,
+      draft: content,
+      evidence_summary: { source: 'parent' },
+    })
+    .select('*')
+    .single()
+
+  if (error) throw new Error(error.message)
+  return mapPlanningDraft(data as Row)
+}
+
+export async function requestAiPlanningDraft(
+  studentId: string,
+  targetDate: string,
+  inputs: ParentPlanningInputs,
+) {
+  const { data, error } = await client().functions.invoke('draft-daily-plan', {
+    body: {
+      studentId,
+      targetDate,
+      availableMinutes: inputs.availableMinutes,
+      dayType: inputs.dayType,
+      parentNotes: inputs.parentNotes,
+      mustInclude: inputs.mustInclude,
+    },
+  })
+
+  if (error) {
+    let message = error.message
+    const context = 'context' in error ? error.context : null
+    if (context instanceof Response) {
+      try {
+        const body = await context.clone().json() as { error?: string }
+        if (body.error) message = body.error
+      } catch {
+        // Keep the function client's error message when no JSON body is available.
+      }
+    }
+    throw new Error(message)
+  }
+  if (!data?.draft) throw new Error('The AI planner did not return a saved draft.')
+  return mapPlanningDraft(data.draft as Row)
+}
+
+export async function savePlanningDraft(record: PlanningDraftRecord) {
+  const { data, error } = await client()
+    .from('planning_drafts')
+    .update({ parent_inputs: record.parentInputs, draft: record.draft })
+    .eq('id', record.id)
+    .eq('student_id', record.studentId)
+    .eq('status', 'draft')
+    .select('*')
+    .single()
+
+  if (error) throw new Error(error.message)
+  return mapPlanningDraft(data as Row)
+}
+
+export async function publishPlanningDraft(draftId: string) {
+  const { data, error } = await client().rpc('publish_planning_draft', { target_draft_id: draftId })
+  if (error) throw new Error(error.message)
+  return String(data)
 }

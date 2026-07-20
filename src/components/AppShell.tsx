@@ -4,6 +4,7 @@ import {
   CalendarDays,
   Calculator,
   ChevronDown,
+  ClipboardPenLine,
   LayoutDashboard,
   LogOut,
   PenLine,
@@ -11,13 +12,14 @@ import {
 } from 'lucide-react'
 import type { Student } from '../types/models'
 
-export type ViewId = 'today' | 'week' | 'scores' | 'reading-writing' | 'math' | 'books'
+export type ViewId = 'today' | 'week' | 'scores' | 'reading-writing' | 'math' | 'books' | 'planner'
 
 interface AppShellProps {
   activeView: ViewId
   onNavigate: (view: ViewId) => void
   student: Student
   dataMode: 'demo' | 'private'
+  showPlanner?: boolean
   accountLabel?: string
   onSignOut?: () => void
   children: React.ReactNode
@@ -30,9 +32,12 @@ const navItems: { id: ViewId; label: string; shortLabel: string; icon: typeof La
   { id: 'reading-writing', label: 'Reading & Writing', shortLabel: 'R&W', icon: PenLine },
   { id: 'math', label: 'Math', shortLabel: 'Math', icon: Calculator },
   { id: 'books', label: 'Books & Resources', shortLabel: 'Books', icon: BookOpen },
+  { id: 'planner', label: 'Planning Room', shortLabel: 'Plan', icon: ClipboardPenLine },
 ]
 
-export function AppShell({ activeView, onNavigate, student, dataMode, accountLabel, onSignOut, children }: AppShellProps) {
+export function AppShell({ activeView, onNavigate, student, dataMode, showPlanner = false, accountLabel, onSignOut, children }: AppShellProps) {
+  const visibleNavItems = navItems.filter((item) => item.id !== 'planner' || showPlanner)
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -46,7 +51,7 @@ export function AppShell({ activeView, onNavigate, student, dataMode, accountLab
 
         <nav className="sidebar__nav" aria-label="Main navigation">
           <p>Workspace</p>
-          {navItems.map(({ id, label, icon: Icon }) => (
+          {visibleNavItems.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               className={activeView === id ? 'nav-item nav-item--active' : 'nav-item'}
@@ -91,7 +96,7 @@ export function AppShell({ activeView, onNavigate, student, dataMode, accountLab
       </div>
 
       <nav className="mobile-nav" aria-label="Mobile navigation">
-        {navItems.map(({ id, shortLabel, icon: Icon }) => (
+        {visibleNavItems.map(({ id, shortLabel, icon: Icon }) => (
           <button
             key={id}
             className={activeView === id ? 'mobile-nav__item mobile-nav__item--active' : 'mobile-nav__item'}

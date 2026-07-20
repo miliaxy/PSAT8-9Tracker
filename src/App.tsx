@@ -12,12 +12,14 @@ const WeekPage = lazy(() => import('./pages/WeekPage').then((module) => ({ defau
 const ScoresPage = lazy(() => import('./pages/ScoresPage').then((module) => ({ default: module.ScoresPage })))
 const SkillPage = lazy(() => import('./pages/SkillPage').then((module) => ({ default: module.SkillPage })))
 const BooksPage = lazy(() => import('./pages/BooksPage').then((module) => ({ default: module.BooksPage })))
+const PlannerPage = lazy(() => import('./pages/PlannerPage').then((module) => ({ default: module.PlannerPage })))
 
-const validViews: ViewId[] = ['today', 'week', 'scores', 'reading-writing', 'math', 'books']
+const validViews: ViewId[] = ['today', 'week', 'scores', 'reading-writing', 'math', 'books', 'planner']
 const completionStorageKey = 'psat-pathway-demo-completed-tasks'
 
-function getInitialView(): ViewId {
+function getInitialView(allowPlanner = false): ViewId {
   const hashView = window.location.hash.slice(1) as ViewId
+  if (hashView === 'planner' && !allowPlanner) return 'today'
   return validViews.includes(hashView) ? hashView : 'today'
 }
 
@@ -37,17 +39,18 @@ function initialCompletion(bundle: DashboardBundle, demoMode: boolean) {
   }
 }
 
-function Dashboard({ bundle, demoMode }: { bundle: DashboardBundle; demoMode: boolean }) {
+function Dashboard({ bundle, demoMode, onDataChanged }: { bundle: DashboardBundle; demoMode: boolean; onDataChanged?: () => void }) {
   const { profile, signOut } = useAuth()
-  const [activeView, setActiveView] = useState<ViewId>(getInitialView)
+  const canPlan = !demoMode && profile?.role === 'parent_admin'
+  const [activeView, setActiveView] = useState<ViewId>(() => getInitialView(canPlan))
   const [completedTaskIds, setCompletedTaskIds] = useState(() => initialCompletion(bundle, demoMode))
   const [taskError, setTaskError] = useState<string | null>(null)
 
   useEffect(() => {
-    const handleHashChange = () => setActiveView(getInitialView())
+    const handleHashChange = () => setActiveView(getInitialView(canPlan))
     window.addEventListener('hashchange', handleHashChange)
     return () => window.removeEventListener('hashchange', handleHashChange)
-  }, [])
+  }, [canPlan])
 
   const allTodayTaskIds = useMemo(() => new Set(bundle.todayTasks.map((task) => task.id)), [bundle.todayTasks])
 
@@ -105,6 +108,10 @@ function Dashboard({ bundle, demoMode }: { bundle: DashboardBundle; demoMode: bo
         return <SkillPage key="math" section="Math" allSkills={bundle.skills} drills={bundle.drills} tests={bundle.practiceTests} />
       case 'books':
         return <BooksPage books={bundle.books} resources={bundle.learningResources} />
+      case 'planner':
+        return canPlan
+          ? <PlannerPage student={bundle.student} skills={bundle.skills} onPublished={onDataChanged ?? (() => undefined)} />
+          : <TodayPage student={bundle.student} tasks={bundle.todayTasks} plan={bundle.studyPlan} practiceTests={bundle.practiceTests} skills={bundle.skills} completedTaskIds={new Set([...completedTaskIds].filter((id) => allTodayTaskIds.has(id)))} onToggleTask={toggleTask} onViewWeek={() => navigate('week')} />
     }
   }
 
@@ -114,6 +121,7 @@ function Dashboard({ bundle, demoMode }: { bundle: DashboardBundle; demoMode: bo
       onNavigate={navigate}
       student={bundle.student}
       dataMode={demoMode ? 'demo' : 'private'}
+      showPlanner={canPlan}
       accountLabel={profile?.displayName}
       onSignOut={demoMode ? undefined : () => void signOut()}
     >
@@ -159,7 +167,7 @@ function PrivateWorkspace() {
   }, [reload, status])
 
   if (state === 'loading') return <div className="workspace-state"><div className="page-loading"><span />Opening your private workspace…</div></div>
-  if (state === 'ready' && bundle) return <Dashboard bundle={bundle} demoMode={false} />
+  if (state === 'ready' && bundle) return <Dashboard bundle={bundle} demoMode={false} onDataChanged={() => setReload((value) => value + 1)} />
 
   return (
     <main className="workspace-state">

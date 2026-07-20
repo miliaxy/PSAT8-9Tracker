@@ -31,3 +31,14 @@ Do not replace the placeholder in a committed file. Run the edited query only in
 - All personal-table queries also filter by `student_id`, which supports both clarity and indexed RLS checks.
 
 Never expose the Supabase service-role key in browser code. It bypasses row-level security and belongs only in a trusted server environment if one is added later.
+
+## Parent Planning Room
+
+The Planning Room uses a two-step workflow:
+
+1. A parent creates or edits a private draft for one date.
+2. The database publishes that reviewed draft atomically to the student's weekly plan.
+
+Students cannot read planning drafts. The publishing function also refuses to replace a day after any assignment on that day has been completed.
+
+AI drafting runs only in the `draft-daily-plan` Edge Function. The browser never receives the OpenAI API key. Configure the production function with a Supabase secret named `OPENAI_API_KEY`; `OPENAI_MODEL` is optional and defaults to the balanced GPT-5.6 model selected for this workflow. The function sends a minimized coaching snapshot without the student's name, account email, or database identifiers, and uses `store: false` for the OpenAI response.

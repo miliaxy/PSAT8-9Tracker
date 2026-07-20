@@ -53,6 +53,10 @@ pnpm lint
 pnpm build
 ```
 
+## Publish
+
+Pushes to `main` are deployed to GitHub Pages. The workflow builds with the repository's `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` Actions secrets; both are public browser configuration values, never service-role or OpenAI secrets.
+
 ## Privacy
 
 This public repository must contain only fictional/demo student data. Do not commit real scores, answers, student records, credentials, secrets, or `.env` files.

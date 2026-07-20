@@ -197,6 +197,47 @@ export interface StudyPlan {
   days: StudyDay[]
 }
 
+export type PlanningDraftStatus = 'draft' | 'published' | 'archived'
+
+export interface ParentPlanningInputs {
+  availableMinutes: number
+  dayType: Exclude<DayType, 'no-study'>
+  parentNotes: string
+  mustInclude: string
+}
+
+export interface PlanningTaskDraft {
+  title: string
+  description: string
+  category: TaskCategory
+  section: Section | null
+  minutes: number
+  resource: string | null
+  skillIds: string[]
+}
+
+export interface PlanningDraftContent {
+  focus: string
+  dayType: Exclude<DayType, 'no-study'>
+  coachNote: string
+  rationale: string
+  tasks: PlanningTaskDraft[]
+}
+
+export interface PlanningDraftRecord {
+  id: string
+  studentId: string
+  targetDate: string
+  status: PlanningDraftStatus
+  parentInputs: ParentPlanningInputs
+  draft: PlanningDraftContent
+  evidenceSummary: Record<string, unknown>
+  model?: string
+  publishedAt?: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface Book {
   id: string
   title: string
