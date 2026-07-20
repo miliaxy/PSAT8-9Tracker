@@ -131,6 +131,7 @@ export async function loadStudentDashboard(student: Student): Promise<DashboardB
   const skills: Skill[] = rows(skillCatalogResult.data).map((catalog) => {
     const progress = progressBySkill.get(String(catalog.id))
     const practiceAttempted = progress ? Number(progress.practice_test_attempted) : 0
+    const practiceCorrect = progress ? Number(progress.practice_test_correct) : 0
     const drillAttempted = progress ? Number(progress.drill_attempted) : 0
     return {
       id: String(catalog.id),
@@ -142,7 +143,8 @@ export async function loadStudentDashboard(student: Student): Promise<DashboardB
       practiceTestEvidence: {
         rating: (progress?.practice_test_rating || 'No evidence') as EvidenceRating,
         totalAttempted: practiceAttempted,
-        totalCorrect: progress ? Number(progress.practice_test_correct) : 0,
+        totalCorrect: practiceCorrect,
+        recentAccuracy: practiceAttempted ? Math.round((practiceCorrect / practiceAttempted) * 100) : undefined,
         sampleSize: practiceAttempted,
       },
       drillEvidence: {
