@@ -222,27 +222,29 @@ function makeSkillTasks(
 ): PlanningTaskDraft[] {
   const mistakes = recentMistakes(skill, drills, targetDate)
   const conceptInProgress = ['not_yet_taught', 'learning'].includes(skill.conceptState)
-  const hasConceptGap = mistakes.some((mistake) => ['Not Yet Taught', 'Concept Gap'].includes(mistake.classification))
-    || conceptInProgress
+  const needsReview = mistakes.some((mistake) => ['Not Yet Taught', 'Concept Gap'].includes(mistake.classification))
+    || skill.conceptState === 'needs_review'
     || skill.drillEvidence.rating === 'Needs work'
-  const learningMinutes = conceptInProgress
+  const preparationMinutes = conceptInProgress
     ? minutes
-    : hasConceptGap && minutes >= 20
+    : needsReview && minutes >= 20
       ? (minutes >= 30 ? 15 : 10)
-      : hasConceptGap
+      : needsReview
         ? minutes
         : 0
-  const drillMinutes = conceptInProgress ? 0 : minutes - learningMinutes
+  const drillMinutes = conceptInProgress ? 0 : minutes - preparationMinutes
   const tasks: PlanningTaskDraft[] = []
 
-  if (learningMinutes) {
-    const topic = learningTopic(skill)
+  if (preparationMinutes) {
+    const topic = conceptInProgress ? learningTopic(skill) : priority.skillName
     tasks.push({
-      title: `${topic}: learn the concept`,
-      description: `${skill.nextStep || `Review one worked example for ${priority.skillName}.`} Explain the method aloud and write one rule or takeaway. The drill is a separate assignment.`,
-      category: 'Learn',
+      title: conceptInProgress ? `${topic}: learn the concept` : `${topic}: review the method`,
+      description: conceptInProgress
+        ? `${skill.nextStep || `Learn the core method for ${priority.skillName}.`} Explain the method aloud and write one rule or takeaway. Drilling waits until the concept is complete.`
+        : `${skill.nextStep || `Review one worked example for ${priority.skillName}.`} Revisit one worked example, explain the method aloud, and write one rule or takeaway. The drill is a separate assignment.`,
+      category: conceptInProgress ? 'Learn' : 'Review',
       section: priority.section,
-      minutes: learningMinutes,
+      minutes: preparationMinutes,
       resource: 'Khan Academy or current prep resource',
       skillIds: [priority.skillId],
     })
@@ -371,6 +373,7 @@ export function buildRecommendedPlan(
         'The score goal and days remaining determine whether the session stays narrow or covers a third priority.',
         'Learning a concept and drilling it are separate assignments.',
         'A skill marked Not yet taught or Learning receives concept work only; drilling waits until the concept is complete.',
+        'A previously taught skill that needs reinforcement receives a review task and may then be drilled the same day.',
         'Hard questions stay locked until recent Easy/Medium work reaches at least 95%.',
         'Drill timers use PSAT 8/9 section pacing, with faster Easy/Medium targets that bank time for Hard questions.',
         'Assigned drill minutes include answering time only; review is optional and student-directed.',
