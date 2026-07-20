@@ -1,9 +1,12 @@
 import {
   AlertTriangle,
   ArrowUpRight,
+  BookOpen,
+  Calculator,
   CheckCircle2,
   CircleGauge,
   Clock3,
+  ExternalLink,
   Flag,
   Goal,
   ListChecks,
@@ -14,6 +17,36 @@ import { ScoreChart } from '../components/ScoreChart'
 import { PageHeader, ProgressBar, StatCard } from '../components/ui'
 import type { PracticeTest } from '../types/models'
 import { formatDate, formatLongDate, statusKey } from '../utils/format'
+
+const officialTestStructure = [
+  { section: 'Reading & Writing', minutes: 64, questions: 54, icon: BookOpen },
+  { section: 'Math', minutes: 70, questions: 44, icon: Calculator },
+]
+
+function TestFormatReference() {
+  return (
+    <section className="panel test-format-panel" aria-labelledby="official-test-format">
+      <div className="test-format-panel__intro">
+        <span className="eyebrow">College Board reference</span>
+        <h2 id="official-test-format">Official digital PSAT 8/9 format</h2>
+        <p>Two modules per section · 98 questions · 2 hours 14 minutes total</p>
+      </div>
+      <div className="test-format-panel__sections">
+        {officialTestStructure.map(({ section, minutes, questions, icon: Icon }) => (
+          <div key={section}>
+            <Icon size={18} />
+            <span>{section}</span>
+            <strong>{questions} questions</strong>
+            <small>{minutes} minutes</small>
+          </div>
+        ))}
+      </div>
+      <a href="https://satsuite.collegeboard.org/psat-8-9/whats-on-the-test/structure" target="_blank" rel="noreferrer">
+        Official test details <ExternalLink size={13} />
+      </a>
+    </section>
+  )
+}
 
 export function ScoresPage({ tests, targetScore }: { tests: PracticeTest[]; targetScore: number }) {
   const [selectedTestId, setSelectedTestId] = useState(tests.at(-1)?.id ?? '')
@@ -27,6 +60,7 @@ export function ScoresPage({ tests, targetScore }: { tests: PracticeTest[]; targ
           description="See the trend, inspect each test, and turn every missed question into a useful next action."
           action={<span className="goal-chip"><Target size={16} /> Target {targetScore}</span>}
         />
+        <TestFormatReference />
         <section className="panel empty-data-panel">
           <CircleGauge size={25} />
           <h2>No practice tests yet</h2>
@@ -51,6 +85,8 @@ export function ScoresPage({ tests, targetScore }: { tests: PracticeTest[]; targ
         description="See the trend, inspect each test, and turn every missed question into a useful next action."
         action={<span className="goal-chip"><Target size={16} /> Target {targetScore}</span>}
       />
+
+      <TestFormatReference />
 
       <section className="stats-grid stats-grid--four">
         <StatCard label="Latest score" value={latestTest.totalScore} detail={latestTest.name} icon={CircleGauge} tone="violet" />

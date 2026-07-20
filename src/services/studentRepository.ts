@@ -101,7 +101,7 @@ export async function loadStudentDashboard(student: Student): Promise<DashboardB
     booksResult,
     resourcesResult,
   ] = await Promise.all([
-    db.from('skill_catalog').select('*').order('sort_order'),
+    db.from('skill_catalog').select('*').eq('is_active', true).order('sort_order'),
     db.from('student_skill_progress').select('*').eq('student_id', studentId),
     db.from('practice_tests').select('*').eq('student_id', studentId).order('test_date', { ascending: true }),
     db.from('practice_test_domains').select('*').eq('student_id', studentId),
