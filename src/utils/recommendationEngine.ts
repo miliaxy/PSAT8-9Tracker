@@ -156,14 +156,55 @@ function isReadyForHard(skill: Skill, drills: Drill[], targetDate: string) {
   return attempted >= 20 && (correct / attempted) * 100 >= 95
 }
 
-function drillQuestionMix(minutes: number, hardReady: boolean) {
-  const questionCount = minutes >= 20 ? 10 : minutes >= 15 ? 8 : 6
-  if (hardReady) {
-    const medium = Math.ceil(questionCount / 2)
-    return { questionCount, detail: `${medium} Medium and ${questionCount - medium} Hard` }
+const pacingSeconds = {
+  'Reading & Writing': { average: 71, easy: 55, medium: 70, hard: 90 },
+  Math: { average: 95, easy: 70, medium: 90, hard: 125 },
+} as const
+
+function formatDuration(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return seconds ? `${minutes}:${String(seconds).padStart(2, '0')}` : `${minutes}:00`
+}
+
+function drillQuestionMix(minutes: number, section: Skill['section'], hardReady: boolean) {
+  const pacing = pacingSeconds[section]
+  let questionCount = minutes >= 20 ? 10 : minutes >= 15 ? 8 : 6
+  const maxAnsweringSeconds = Math.max(60, (minutes - 2) * 60)
+
+  const buildMix = (count: number) => {
+    if (hardReady) {
+      const medium = Math.ceil(count / 2)
+      const hard = count - medium
+      return {
+        detail: `${medium} Medium and ${hard} Hard`,
+        answeringSeconds: medium * pacing.medium + hard * pacing.hard,
+      }
+    }
+    const easy = Math.floor(count / 2)
+    const medium = count - easy
+    return {
+      detail: `${easy} Easy and ${medium} Medium`,
+      answeringSeconds: easy * pacing.easy + medium * pacing.medium,
+    }
   }
-  const easy = Math.floor(questionCount / 2)
-  return { questionCount, detail: `${easy} Easy and ${questionCount - easy} Medium` }
+
+  let mix = buildMix(questionCount)
+  while (questionCount > 4 && mix.answeringSeconds > maxAnsweringSeconds) {
+    questionCount -= 2
+    mix = buildMix(questionCount)
+  }
+
+  return {
+    questionCount,
+    detail: mix.detail,
+    timer: formatDuration(mix.answeringSeconds),
+    reviewTime: formatDuration(Math.max(0, minutes * 60 - mix.answeringSeconds)),
+    average: formatDuration(pacing.average),
+    easyTarget: formatDuration(pacing.easy),
+    mediumTarget: formatDuration(pacing.medium),
+    hardTarget: formatDuration(pacing.hard),
+  }
 }
 
 function learningTopic(skill: Skill) {
@@ -202,13 +243,13 @@ function makeSkillTasks(
 
   if (drillMinutes) {
     const hardReady = isReadyForHard(skill, drills, targetDate)
-    const mix = drillQuestionMix(drillMinutes, hardReady)
+    const mix = drillQuestionMix(drillMinutes, priority.section, hardReady)
     const thresholdMessage = hardReady
       ? 'You earned the move to Hard work by reaching at least 95% on recent Easy/Medium practice.'
       : 'Hard questions stay locked until your recent Easy/Medium work reaches at least 95%.'
     tasks.push({
       title: `${priority.skillName}: ${mix.questionCount}-question drill`,
-      description: `Complete exactly ${mix.questionCount} questions: ${mix.detail}. ${thresholdMessage} Classify every miss before reading the explanation.`,
+      description: `Complete exactly ${mix.questionCount} questions: ${mix.detail}. Set the question timer to ${mix.timer}; the section average is ${mix.average} per question. Pacing targets: Easy ${mix.easyTarget}, Medium ${mix.mediumTarget}, Hard ${mix.hardTarget}. Use the remaining ${mix.reviewTime} to classify misses and read explanations. ${thresholdMessage}`,
       category: 'Drill',
       section: priority.section,
       minutes: drillMinutes,
@@ -305,7 +346,7 @@ export function buildRecommendedPlan(
     draft: {
       focus: focusNames.length ? `${focusNames.join(' + ')} + Daily reading` : 'Daily independent reading',
       dayType: inputs.dayType,
-      coachNote: `Accuracy before difficulty: reach at least 95% on Easy/Medium work before moving to Hard questions. Complete learning and drilling as separate assignments, and record every result and mistake.`,
+      coachNote: `Accuracy before difficulty: reach at least 95% on Easy/Medium work before moving to Hard questions. Easy and Medium questions should bank time for harder work. The question timer is separate from correction time.`,
       rationale: `${daysRemaining} days remain until the test. The current score is ${student.currentScore}, the target is ${student.targetScore}, and the gap is ${scoreGap} points. The rules selected ${rationaleParts.join(' | ')}.`,
       tasks,
     },
@@ -323,6 +364,8 @@ export function buildRecommendedPlan(
         'The score goal and days remaining determine whether the session stays narrow or covers a third priority.',
         'Learning a concept and drilling it are separate assignments.',
         'Hard questions stay locked until recent Easy/Medium work reaches at least 95%.',
+        'Drill timers use PSAT 8/9 section pacing, with faster Easy/Medium targets that bank time for Hard questions.',
+        'Question-answering time and correction time are shown separately.',
         'Daily independent reading is included in every plan.',
         'The plan never exceeds the parent’s available minutes.',
       ],
