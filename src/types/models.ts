@@ -188,6 +188,8 @@ export interface RecommendationEvidenceSummary {
   source: 'rules-v1'
   generatedAt: string
   daysRemaining: number
+  scoreGap: number
+  urgency: 'steady' | 'focused' | 'final-stretch'
   rulesApplied: string[]
   priorities: RecommendationEvidenceItem[]
 }
