@@ -118,7 +118,11 @@ function choosePriorities(ranked: RecommendationEvidenceItem[], taskCount: numbe
   const first = ranked[0]
   const otherSection = ranked.find((candidate) => candidate.section !== first.section && candidate.priorityScore >= first.priorityScore - 18)
   const chosen = otherSection ? [first, otherSection] : ranked.slice(0, 2)
-  return chosen
+  for (const candidate of ranked) {
+    if (chosen.length >= taskCount) break
+    if (!chosen.some((priority) => priority.skillId === candidate.skillId)) chosen.push(candidate)
+  }
+  return chosen.slice(0, taskCount)
 }
 
 function makeSkillTask(
@@ -172,7 +176,18 @@ export function buildRecommendedPlan(
     .map((skill) => rankSkill(skill, drills, targetDate))
     .sort((a, b) => b.priorityScore - a.priorityScore || a.skillName.localeCompare(b.skillName))
 
-  const desiredTaskCount = inputs.availableMinutes >= 75 ? 3 : inputs.availableMinutes >= 35 ? 2 : 1
+  const daysRemaining = daysBetween(targetDate, student.testDate)
+  const scoreGap = Math.max(0, student.targetScore - student.currentScore)
+  const urgency: RecommendationEvidenceSummary['urgency'] = daysRemaining <= 30
+    ? 'final-stretch'
+    : daysRemaining <= 75 || scoreGap >= 150
+      ? 'focused'
+      : 'steady'
+  const desiredTaskCount = inputs.availableMinutes >= 75 || (inputs.availableMinutes >= 60 && urgency !== 'steady')
+    ? 3
+    : inputs.availableMinutes >= 35
+      ? 2
+      : 1
   const priorities = choosePriorities(ranked, desiredTaskCount)
   const includeParentTask = Boolean(inputs.mustInclude.trim()) && desiredTaskCount > priorities.length
   const taskCount = priorities.length + (includeParentTask ? 1 : 0)
@@ -194,7 +209,6 @@ export function buildRecommendedPlan(
     tasks[0] = { ...tasks[0], description: `${tasks[0].description} Parent request: ${inputs.mustInclude.trim()}` }
   }
 
-  const daysRemaining = daysBetween(targetDate, student.testDate)
   const focusNames = priorities.map((priority) => priority.skillName)
   const rationaleParts = priorities.map((priority) => `${priority.skillName}: ${priority.reasons.slice(0, 3).join('; ')}`)
 
@@ -203,18 +217,21 @@ export function buildRecommendedPlan(
       focus: focusNames.length ? focusNames.join(' + ') : 'Balanced PSAT practice',
       dayType: inputs.dayType,
       coachNote: `Focus on careful work today. Record the result and the reason for each mistake so tomorrow’s plan can adjust.`,
-      rationale: `${daysRemaining} days remain until the test. The rules selected ${rationaleParts.join(' | ')}.`,
+      rationale: `${daysRemaining} days remain until the test. The current score is ${student.currentScore}, the target is ${student.targetScore}, and the gap is ${scoreGap} points. The rules selected ${rationaleParts.join(' | ')}.`,
       tasks,
     },
     evidenceSummary: {
       source: 'rules-v1',
       generatedAt: new Date().toISOString(),
       daysRemaining,
+      scoreGap,
+      urgency,
       rulesApplied: [
         'Needs-review and developing skills come before strong skills.',
         'Practice-test and drill evidence remain separate.',
         'Recent low accuracy, downward trends, concept mistakes, and long practice gaps increase priority.',
         'When priorities are close, the plan balances Math and Reading & Writing.',
+        'The score goal and days remaining determine whether the session stays narrow or covers a third priority.',
         'The plan never exceeds the parent’s available minutes.',
       ],
       priorities: ranked.slice(0, 5),
