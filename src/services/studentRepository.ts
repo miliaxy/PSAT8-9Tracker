@@ -321,13 +321,16 @@ export async function loadStudentDashboard(student: Student): Promise<DashboardB
 }
 
 export async function setTaskCompletion(studentId: string, taskId: string, completed: boolean) {
-  const { error } = await client()
+  const { data, error } = await client()
     .from('daily_tasks')
     .update({ completed })
     .eq('student_id', studentId)
     .eq('id', taskId)
+    .select('id')
+    .maybeSingle()
 
   if (error) throw new Error(error.message)
+  if (!data) throw new Error('Task completion was not saved')
 }
 
 export async function recordDrillResult(studentId: string, result: DrillResultInput) {
