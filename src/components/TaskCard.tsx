@@ -38,6 +38,23 @@ function isDrillResult(result: Drill | PracticeTest): result is Drill {
   return 'attempted' in result && 'accuracy' in result
 }
 
+function ResourceMeta({ resource }: { resource: string }) {
+  const links = [...resource.matchAll(/(?:(Lesson|Worked example):\s*)?(https?:\/\/[^\s|]+)/gi)]
+
+  if (!links.length) return <span><ExternalLink size={12} /> {resource}</span>
+
+  return (
+    <span className="task-card__resource-links">
+      <ExternalLink size={12} />
+      {links.map((link, index) => (
+        <a key={link[2]} href={link[2]} target="_blank" rel="noreferrer">
+          {link[1] ?? (links.length === 1 ? 'Open resource' : `Open resource ${index + 1}`)}
+        </a>
+      ))}
+    </span>
+  )
+}
+
 export function TaskCard({ task, completed, onToggle, compact = false, studentId, skills = [], result, onResultSaved }: TaskCardProps) {
   const { icon: Icon, tone } = categoryMeta[task.category]
   const [showResultForm, setShowResultForm] = useState(false)
@@ -68,7 +85,7 @@ export function TaskCard({ task, completed, onToggle, compact = false, studentId
         {!compact && (
           <div className="task-card__meta">
             {task.section && <span>{task.section}</span>}
-            {task.resource && <span><ExternalLink size={12} /> {task.resource}</span>}
+            {task.resource && <ResourceMeta resource={task.resource} />}
           </div>
         )}
         {canRecordResult && (

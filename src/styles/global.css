@@ -953,6 +953,7 @@ strong {
 }
 
 .task-card__meta {
+  flex-wrap: wrap;
   gap: 5px;
   color: #838ba0;
   font-size: 9px;
@@ -964,6 +965,16 @@ strong {
   background: #f0f1f6;
   padding: 3px 7px;
 }
+
+.task-card__resource-links a {
+  color: var(--violet);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.task-card__resource-links a:hover { text-decoration: underline; }
+.task-card__resource-links a:focus-visible { border-radius: 3px; outline: 2px solid var(--violet); outline-offset: 2px; }
+.task-card__resource-links a + a { border-left: 1px solid #d6d8e2; padding-left: 6px; }
 
 .task-card--compact {
   border-radius: 10px;
