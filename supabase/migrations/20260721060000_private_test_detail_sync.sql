@@ -1,0 +1,3 @@
+-- A one-time private data correction was applied at this migration version.
+-- Its payload is intentionally excluded from source control because it contains
+-- a minor student's identifiers and assessment record.
