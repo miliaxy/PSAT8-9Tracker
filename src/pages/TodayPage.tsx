@@ -1,6 +1,5 @@
 import {
   ArrowRight,
-  BrainCircuit,
   CalendarDays,
   CheckCircle2,
   CircleGauge,
@@ -50,9 +49,8 @@ export function TodayPage({ student, tasks, plan, practiceTests, drills, skills,
   const previousTest = practiceTests.at(-2)
   const latestGain = latestTest && previousTest ? latestTest.totalScore - previousTest.totalScore : 0
   const strongSkills = skills.filter((skill) => ['Strong', 'Mastered'].includes(skill.combinedStatus)).length
-  const coachSkill = skills.find((skill) => skill.combinedStatus === 'Needs review')
-    ?? skills.find((skill) => skill.combinedStatus === 'Developing')
-    ?? skills[0]
+  const todaySkillIds = new Set(tasks.flatMap((task) => task.skillIds))
+  const todaySkills = skills.filter((skill) => todaySkillIds.has(skill.id))
   const completedCount = tasks.filter((task) => completedTaskIds.has(task.id)).length
   const totalMinutes = tasks.reduce((total, task) => total + task.minutes, 0)
   const remainingMinutes = tasks
@@ -153,16 +151,16 @@ export function TodayPage({ student, tasks, plan, practiceTests, drills, skills,
 
         <aside className="today-aside">
           <article className="coach-card">
-            <div className="coach-card__icon"><BrainCircuit size={21} /></div>
-            <span className="eyebrow">Coach’s focus</span>
-            <h2>{coachSkill?.name ?? 'Accuracy before speed'}</h2>
-            <p>{coachSkill?.nextStep ?? 'Explain the rule behind every miss today—don’t just correct the answer.'}</p>
+            <div className="coach-card__icon"><Target size={21} /></div>
+            <span className="eyebrow">Published plan</span>
+            <h2>{today?.focus || 'Follow today’s assignments'}</h2>
+            <p>{today ? 'This is the focus saved with today’s approved plan.' : 'No daily focus has been published yet.'}</p>
             <div className="coach-card__skill">
               <div>
-                <span>Priority skill</span>
-                <strong>{coachSkill?.name ?? 'Not selected'}</strong>
+                <span>Linked skills</span>
+                <strong>{todaySkills.length ? todaySkills.slice(0, 2).map((skill) => skill.name).join(' · ') : 'None linked'}</strong>
               </div>
-              <span>{coachSkill?.drillEvidence.recentAccuracy === undefined ? 'No recent drill' : `${Math.round(coachSkill.drillEvidence.recentAccuracy)}% recent`}</span>
+              <span>{todaySkills.length ? `${todaySkills.length} linked` : 'General plan'}</span>
             </div>
           </article>
 
