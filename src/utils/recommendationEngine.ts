@@ -15,6 +15,10 @@ export interface RecommendedPlan {
   evidenceSummary: RecommendationEvidenceSummary
 }
 
+const skillLearningResources: Partial<Record<string, string>> = {
+  'rw-cross-text': 'Lesson: https://www.khanacademy.org/test-prep/sat-reading-and-writing/x0d47bcec73eb6c4b%3Amedium/x0d47bcec73eb6c4b%3Across-text-connections-2/a/cross-text-connections-lesson | Worked example: https://www.khanacademy.org/test-prep/sat-reading-and-writing/x0d47bcec73eb6c4b%3Amedium-craft-and-structure/x0d47bcec73eb6c4b%3Across-text-connections-2/v/cross-text-connections-video',
+}
+
 const statusScore: Record<Skill['combinedStatus'], number> = {
   'Needs review': 50,
   Developing: 36,
@@ -245,7 +249,7 @@ function makeSkillTasks(
       category: conceptInProgress ? 'Learn' : 'Review',
       section: priority.section,
       minutes: preparationMinutes,
-      resource: 'Khan Academy or current prep resource',
+      resource: skillLearningResources[skill.id] ?? 'Khan Academy or current prep resource',
       skillIds: [priority.skillId],
     })
   }
