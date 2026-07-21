@@ -1,6 +1,5 @@
 import {
   Activity,
-  BrainCircuit,
   CheckCircle2,
   Clock3,
   Filter,
@@ -11,7 +10,7 @@ import {
 import { useMemo, useState } from 'react'
 import { ScoreChart } from '../components/ScoreChart'
 import { SkillCard } from '../components/SkillCard'
-import { PageHeader, StatCard, StatusBadge } from '../components/ui'
+import { PageHeader, ProgressBar, StatCard, StatusBadge } from '../components/ui'
 import type { Drill, PracticeTest, Section, Skill } from '../types/models'
 import { formatDate } from '../utils/format'
 
@@ -28,6 +27,26 @@ export function SkillPage({ section, allSkills, drills, tests }: SkillPageProps)
   const sectionSkills = useMemo(() => allSkills.filter((skill) => skill.section === section), [allSkills, section])
   const sectionDrills = useMemo(() => drills.filter((drill) => drill.section === section), [drills, section])
   const domains = [...new Set(sectionSkills.map((skill) => skill.domain))]
+  const domainSummaries = domains.map((domain) => {
+    const testEvidence = tests
+      .flatMap((test) => test.domainPerformance)
+      .filter((result) => result.section === section && result.domain === domain)
+    const drillEvidence = sectionDrills.filter((drill) => drill.domain === domain)
+    const testAttempted = testEvidence.reduce((sum, result) => sum + result.total, 0)
+    const testCorrect = testEvidence.reduce((sum, result) => sum + result.correct, 0)
+    const drillAttempted = drillEvidence.reduce((sum, drill) => sum + drill.attempted, 0)
+    const drillCorrect = drillEvidence.reduce((sum, drill) => sum + drill.correct, 0)
+
+    return {
+      domain,
+      testAttempted,
+      testCorrect,
+      testAccuracy: testAttempted ? Math.round((testCorrect / testAttempted) * 100) : undefined,
+      drillAttempted,
+      drillCorrect,
+      drillAccuracy: drillAttempted ? Math.round((drillCorrect / drillAttempted) * 100) : undefined,
+    }
+  })
   const [domainFilter, setDomainFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
 
@@ -87,19 +106,30 @@ export function SkillPage({ section, allSkills, drills, tests }: SkillPageProps)
           />
         </article>
 
-        <article className="evidence-explainer">
-          <div className="evidence-explainer__icon"><BrainCircuit size={22} /></div>
-          <div>
-            <span className="eyebrow">How coaching status works</span>
-            <h2>Keep the signals honest</h2>
-            <p>
-              A skill can look strong in a short drill but still need work on a full test. The coach reads both
-              signals—and always shows you the raw evidence.
-            </p>
+        <article className="panel domain-summary-panel">
+          <div className="panel__header panel__header--compact">
+            <div><span className="eyebrow">Domain-level evidence</span><h2>Performance by domain</h2></div>
+            <div className="signal-pair">
+              <span><i className="dot dot--violet" /> Tests</span>
+              <span><i className="dot dot--teal" /> Drills</span>
+            </div>
           </div>
-          <div className="signal-pair">
-            <span><i className="dot dot--violet" /> Practice tests</span>
-            <span><i className="dot dot--teal" /> Daily drills</span>
+          <div className="domain-summary-list">
+            {domainSummaries.map((summary) => (
+              <div className="domain-summary-row" key={summary.domain}>
+                <strong>{summary.domain}</strong>
+                <div className="domain-summary-signal">
+                  <span>Practice tests</span>
+                  <ProgressBar value={summary.testAccuracy ?? 0} tone="violet" label={`${summary.domain} practice-test accuracy`} />
+                  <small>{summary.testAccuracy === undefined ? 'No evidence' : `${summary.testCorrect}/${summary.testAttempted} · ${summary.testAccuracy}%`}</small>
+                </div>
+                <div className="domain-summary-signal">
+                  <span>Daily drills</span>
+                  <ProgressBar value={summary.drillAccuracy ?? 0} tone="teal" label={`${summary.domain} drill accuracy`} />
+                  <small>{summary.drillAccuracy === undefined ? 'No evidence' : `${summary.drillCorrect}/${summary.drillAttempted} · ${summary.drillAccuracy}%`}</small>
+                </div>
+              </div>
+            ))}
           </div>
         </article>
       </section>
