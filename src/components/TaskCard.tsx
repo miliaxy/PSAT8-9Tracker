@@ -92,18 +92,25 @@ export function TaskCard({ task, completed, onToggle, compact = false, studentId
         {canRecordResult && (
           <div className="task-card__evidence">
             {result ? (
-              <span className="task-result-chip"><Check size={13} /> {isDrillResult(result) ? `${result.correct}/${result.attempted} · ${Math.round(result.accuracy)}%` : `Score ${result.totalScore}`}</span>
+              <div className="task-result-summary">
+                <span className="task-result-chip"><Check size={13} /> {isDrillResult(result) ? `${result.correct}/${result.attempted} · ${Math.round(result.accuracy)}%` : `Score ${result.totalScore}`}</span>
+                {isDrillResult(result) && (
+                  <button className="task-result-button" type="button" onClick={() => setShowResultForm((value) => !value)} aria-expanded={showResultForm} aria-controls={resultFormId}>
+                    <PencilLine size={14} /> {showResultForm ? 'Close editor' : 'Edit result'}
+                  </button>
+                )}
+              </div>
             ) : (
               <button className="task-result-button" type="button" onClick={() => setShowResultForm((value) => !value)} aria-expanded={showResultForm} aria-controls={resultFormId}><BarChart3 size={14} /> {showResultForm ? 'Close result form' : `Record ${task.category === 'Practice test' ? 'test' : 'drill'} result`}</button>
             )}
           </div>
         )}
       </div>
-      {showResultForm && studentId && onResultSaved && !result && (
+      {showResultForm && studentId && onResultSaved && (!result || isDrillResult(result)) && (
         <div className="task-card__result-form" id={resultFormId}>
           {task.category === 'Practice test'
             ? <PracticeTestResultForm studentId={studentId} task={task} skills={skills} onSaved={onResultSaved} onCancel={() => setShowResultForm(false)} />
-            : <DrillResultForm studentId={studentId} task={task} skills={skills} onSaved={onResultSaved} onCancel={() => setShowResultForm(false)} />}
+            : <DrillResultForm studentId={studentId} task={task} skills={skills} existingResult={result && isDrillResult(result) ? result : undefined} onSaved={() => { setShowResultForm(false); onResultSaved() }} onCancel={() => setShowResultForm(false)} />}
         </div>
       )}
     </article>

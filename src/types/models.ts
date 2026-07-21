@@ -143,6 +143,7 @@ export interface DrillMistake {
 export interface Drill {
   id: string
   taskId?: string
+  skillId?: string
   date: string
   section: Section
   domain: string

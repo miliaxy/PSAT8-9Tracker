@@ -215,6 +215,7 @@ export async function loadStudentDashboard(student: Student): Promise<DashboardB
   const drills: Drill[] = rows(drillsResult.data).map((drill) => ({
     id: String(drill.id),
     taskId: drill.task_id ? String(drill.task_id) : undefined,
+    skillId: drill.skill_id ? String(drill.skill_id) : undefined,
     date: String(drill.drill_date),
     section: value<Section>(drill, 'section'),
     domain: String(drill.domain),
@@ -339,6 +340,32 @@ export async function recordDrillResult(studentId: string, result: DrillResultIn
     target_student_id: studentId,
     result: {
       taskId: result.taskId ?? null,
+      drillDate: result.date,
+      skillId: result.skillId,
+      difficulty: result.difficulty,
+      source: result.source.trim(),
+      attempted: result.attempted,
+      correct: result.correct,
+      timeLimitMinutes: result.timeLimitMinutes ?? null,
+      timeSpentMinutes: result.timeSpentMinutes ?? null,
+      notes: result.notes.trim() || null,
+      mistakes: result.mistakes.map((mistake) => ({
+        questionNumber: mistake.questionNumber ?? null,
+        classification: mistake.classification,
+        note: mistake.note.trim() || null,
+      })),
+    },
+  })
+
+  if (error) throw new Error(error.message)
+  return String(data)
+}
+
+export async function updateDrillResult(studentId: string, drillId: string, result: DrillResultInput) {
+  const { data, error } = await client().rpc('update_drill_result', {
+    target_student_id: studentId,
+    target_drill_id: drillId,
+    result: {
       drillDate: result.date,
       skillId: result.skillId,
       difficulty: result.difficulty,

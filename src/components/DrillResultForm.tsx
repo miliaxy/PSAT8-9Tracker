@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import { CheckCircle2, LoaderCircle, Plus, Save, Trash2, X } from 'lucide-react'
-import { recordDrillResult } from '../services/studentRepository'
+import { recordDrillResult, updateDrillResult } from '../services/studentRepository'
 import type {
   DailyTask,
   Difficulty,
+  Drill,
   DrillResultInput,
   DrillResultMistakeInput,
   ErrorClassification,
@@ -14,6 +15,7 @@ interface DrillResultFormProps {
   studentId: string
   task: DailyTask
   skills: Skill[]
+  existingResult?: Drill
   onSaved: () => void
   onCancel: () => void
 }
@@ -23,7 +25,31 @@ const classifications: ErrorClassification[] = [
   'Strategy', 'Misread Question', 'Guess', 'Other',
 ]
 
-function initialResult(task: DailyTask): DrillResultInput {
+function initialResult(task: DailyTask, skills: Skill[], existingResult?: Drill): DrillResultInput {
+  if (existingResult) {
+    const matchingSkill = skills.find((skill) => (
+      skill.section === existingResult.section
+      && skill.domain === existingResult.domain
+      && skill.name === existingResult.skillTopic
+    ))
+    return {
+      taskId: existingResult.taskId ?? task.id,
+      date: existingResult.date,
+      skillId: existingResult.skillId ?? matchingSkill?.id ?? task.skillIds[0] ?? '',
+      difficulty: existingResult.difficulty,
+      source: existingResult.source,
+      attempted: existingResult.attempted,
+      correct: existingResult.correct,
+      timeLimitMinutes: existingResult.timeLimitMinutes,
+      timeSpentMinutes: existingResult.timeSpentMinutes,
+      notes: existingResult.notes ?? '',
+      mistakes: (existingResult.mistakes ?? []).map((mistake) => ({
+        questionNumber: mistake.questionNumber,
+        classification: mistake.classification,
+        note: mistake.note ?? '',
+      })),
+    }
+  }
   return {
     taskId: task.id,
     date: task.date,
@@ -43,12 +69,12 @@ function emptyMistake(): DrillResultMistakeInput {
   return { classification: 'Concept Gap', note: '' }
 }
 
-export function DrillResultForm({ studentId, task, skills, onSaved, onCancel }: DrillResultFormProps) {
+export function DrillResultForm({ studentId, task, skills, existingResult, onSaved, onCancel }: DrillResultFormProps) {
   const availableSkills = useMemo(
     () => task.section ? skills.filter((skill) => skill.section === task.section) : skills,
     [skills, task.section],
   )
-  const [result, setResult] = useState<DrillResultInput>(() => initialResult(task))
+  const [result, setResult] = useState<DrillResultInput>(() => initialResult(task, skills, existingResult))
   const [working, setWorking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -82,8 +108,9 @@ export function DrillResultForm({ studentId, task, skills, onSaved, onCancel }: 
     setWorking(true)
     setError(null)
     try {
-      await recordDrillResult(studentId, result)
-      setSuccess(`${selectedSkill?.name ?? 'Drill'} saved. Skill evidence and planning priorities were recalculated.`)
+      if (existingResult) await updateDrillResult(studentId, existingResult.id, result)
+      else await recordDrillResult(studentId, result)
+      setSuccess(`${selectedSkill?.name ?? 'Drill'} ${existingResult ? 'updated' : 'saved'}. Skill evidence and planning priorities were recalculated.`)
       onSaved()
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : 'The drill result could not be saved.')
@@ -95,8 +122,8 @@ export function DrillResultForm({ studentId, task, skills, onSaved, onCancel }: 
   return (
     <form className="assignment-result-form" aria-busy={working} onSubmit={(event) => { event.preventDefault(); void save() }}>
       <div className="assignment-result-form__header">
-        <div><span className="eyebrow">Assignment evidence</span><h4>Record drill result</h4></div>
-        <span className="assignment-prefill">Date, skill and source prefilled</span>
+        <div><span className="eyebrow">Assignment evidence</span><h4>{existingResult ? 'Edit drill result' : 'Record drill result'}</h4></div>
+        <span className="assignment-prefill">{existingResult ? 'Saved values prefilled' : 'Date, skill and source prefilled'}</span>
       </div>
       {error && <div className="inline-error" role="alert">{error}</div>}
       {success && <div className="inline-success" role="status"><CheckCircle2 size={16} /> {success}</div>}
@@ -144,7 +171,7 @@ export function DrillResultForm({ studentId, task, skills, onSaved, onCancel }: 
       <div className="drill-entry__actions">
         {validationError && <p id={validationId} role="alert">{validationError}</p>}
         <button className="button button--secondary" type="button" onClick={onCancel}><X size={15} /> Cancel</button>
-        <button className="button button--primary" type="submit" disabled={Boolean(validationError) || working || Boolean(success)}>{working ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />} {working ? 'Saving…' : 'Save result'}</button>
+        <button className="button button--primary" type="submit" disabled={Boolean(validationError) || working || Boolean(success)}>{working ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />} {working ? 'Saving…' : existingResult ? 'Update result' : 'Save result'}</button>
       </div>
     </form>
   )

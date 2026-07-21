@@ -953,6 +953,7 @@ strong {
 }
 
 .task-card__evidence { display: flex; margin-top: 8px; }
+.task-result-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
 .task-result-button {
   display: inline-flex;
   align-items: center;
