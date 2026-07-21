@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   CircleGauge,
   Clock3,
-  Flag,
   Sparkles,
   Target,
   TrendingUp,
@@ -44,6 +43,7 @@ function addDays(dateKey: string, days: number) {
 
 export function TodayPage({ student, tasks, plan, practiceTests, drills, skills, completedTaskIds, onToggleTask, onViewWeek, canRecordResults, onResultSaved }: TodayPageProps) {
   const todayKey = localDateKey()
+  const today = plan.days.find((day) => day.date === todayKey)
   const tomorrowKey = addDays(todayKey, 1)
   const tomorrow = plan.days.find((day) => day.date === tomorrowKey)
   const latestTest = practiceTests.at(-1)
@@ -169,25 +169,12 @@ export function TodayPage({ student, tasks, plan, practiceTests, drills, skills,
           <article className="strategy-card">
             <div className="panel__header panel__header--compact">
               <div>
-                <span className="eyebrow">Test-day habits</span>
-                <h2>Three rules</h2>
+                <span className="eyebrow">Student-specific guidance</span>
+                <h2>Coaching note</h2>
               </div>
-              <Flag size={18} />
+              <Sparkles size={18} />
             </div>
-            <ol className="strategy-list">
-              <li>
-                <span>01</span>
-                <div><strong>90-second flag</strong><p>If progress stalls, flag it, guess, and move on.</p></div>
-              </li>
-              <li>
-                <span>02</span>
-                <div><strong>Zero blanks</strong><p>Every question gets an answer before time ends.</p></div>
-              </li>
-              <li>
-                <span>03</span>
-                <div><strong>Module 1 accuracy</strong><p>Protect accuracy early on the adaptive test.</p></div>
-              </li>
-            </ol>
+            <p>{today?.note || 'No coaching note has been added for today.'}</p>
           </article>
 
           <button className="next-up-card" onClick={onViewWeek}>
