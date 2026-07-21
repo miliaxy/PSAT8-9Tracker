@@ -221,6 +221,7 @@ export interface LearningResourceUnit {
   id: string
   provider: 'Khan Academy' | 'Prep book'
   title: string
+  url?: string
   section: Section | 'Both'
   sequence: number
   status: 'Completed' | 'In progress' | 'Locked' | 'Ready'

@@ -307,6 +307,7 @@ export async function loadStudentDashboard(student: Student): Promise<DashboardB
     id: String(resource.id),
     provider: value<LearningResourceUnit['provider']>(resource, 'provider'),
     title: String(resource.title),
+    url: resource.url ? String(resource.url) : undefined,
     section: value<LearningResourceUnit['section']>(resource, 'section'),
     sequence: Number(resource.sequence),
     status: value<LearningResourceUnit['status']>(resource, 'status'),

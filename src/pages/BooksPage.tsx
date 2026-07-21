@@ -3,6 +3,7 @@ import {
   BookOpenCheck,
   Check,
   ChevronRight,
+  ExternalLink,
   GraduationCap,
   Library,
   LockKeyhole,
@@ -133,7 +134,18 @@ function ResourceRow({ resource }: { resource: LearningResourceUnit }) {
         {resource.progress > 0 && resource.progress < 100 && <ProgressBar value={resource.progress} tone="gold" label={`${resource.title} progress`} />}
       </div>
       <span className="resource-row__progress">{resource.progress}%</span>
-      <ChevronRight size={16} />
+      {resource.url ? (
+        <a
+          className="resource-row__link"
+          href={resource.url}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`Open ${resource.title}`}
+          title={`Open ${resource.title}`}
+        >
+          <ExternalLink size={16} />
+        </a>
+      ) : <ChevronRight size={16} />}
     </div>
   )
 }
