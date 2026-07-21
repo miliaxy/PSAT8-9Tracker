@@ -355,7 +355,7 @@ export function buildRecommendedPlan(
     draft: {
       focus: focusNames.length ? `${focusNames.join(' + ')} + Daily reading` : 'Daily independent reading',
       dayType: inputs.dayType,
-      coachNote: `Accuracy before difficulty: reach at least 95% on Easy/Medium work before moving to Hard questions. Easy and Medium questions should bank time for harder work. Drill time means answering time only; decide for yourself whether to review afterward.`,
+      coachNote: `Accuracy before difficulty: reach at least 95% on Easy/Medium work before moving to Hard questions. Easy and Medium questions should bank time for harder work. Drill time means answering time only. Afterward, review every missed question and record what caused the mistake so you can avoid making it again.`,
       rationale: `${daysRemaining} days remain until the test. The current score is ${student.currentScore}, the target is ${student.targetScore}, and the gap is ${scoreGap} points. The rules selected ${rationaleParts.join(' | ')}.`,
       tasks,
     },
@@ -376,7 +376,7 @@ export function buildRecommendedPlan(
         'A previously taught skill that needs reinforcement receives a review task and may then be drilled the same day.',
         'Hard questions stay locked until recent Easy/Medium work reaches at least 95%.',
         'Drill timers use PSAT 8/9 section pacing, with faster Easy/Medium targets that bank time for Hard questions.',
-        'Assigned drill minutes include answering time only; review is optional and student-directed.',
+        'Assigned drill minutes include answering time only; afterward, every missed question must be reviewed and its cause recorded.',
         'Daily independent reading is included in every plan.',
         'The plan never exceeds the parent’s available minutes.',
       ],
