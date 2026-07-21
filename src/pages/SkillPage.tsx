@@ -19,11 +19,20 @@ interface SkillPageProps {
   allSkills: Skill[]
   drills: Drill[]
   tests: PracticeTest[]
+  targetScore: number
 }
 
 type StatusFilter = 'all' | 'attention' | 'strong'
 
-export function SkillPage({ section, allSkills, drills, tests }: SkillPageProps) {
+function mixedAccuracyTarget(targetScore: number) {
+  if (targetScore >= 1380) return 95
+  if (targetScore >= 1300) return 92
+  if (targetScore >= 1200) return 90
+  if (targetScore >= 1100) return 85
+  return 80
+}
+
+export function SkillPage({ section, allSkills, drills, tests, targetScore }: SkillPageProps) {
   const sectionSkills = useMemo(() => allSkills.filter((skill) => skill.section === section), [allSkills, section])
   const sectionDrills = useMemo(() => drills.filter((drill) => drill.section === section), [drills, section])
   const domains = [...new Set(sectionSkills.map((skill) => skill.domain))]
@@ -68,6 +77,7 @@ export function SkillPage({ section, allSkills, drills, tests }: SkillPageProps)
   const attempted = sectionDrills.reduce((sum, drill) => sum + drill.attempted, 0)
   const correct = sectionDrills.reduce((sum, drill) => sum + drill.correct, 0)
   const averageAccuracy = attempted ? Math.round((correct / attempted) * 100) : 0
+  const accuracyTarget = mixedAccuracyTarget(targetScore)
   const strongSkills = sectionSkills.filter((skill) => ['Strong', 'Mastered'].includes(skill.combinedStatus)).length
   const improvingSkills = sectionSkills.filter((skill) => skill.trend === 'up').length
   const sectionName = section === 'Reading & Writing' ? 'Reading & Writing' : 'Math'
@@ -84,6 +94,20 @@ export function SkillPage({ section, allSkills, drills, tests }: SkillPageProps)
         description={sectionDescription}
         action={<span className="evidence-chip"><Activity size={16} /> Two evidence streams</span>}
       />
+
+      <section className="accuracy-target-panel" aria-label={`${sectionName} accuracy target`}>
+        <div className="accuracy-target-panel__intro">
+          <div><Target size={20} /></div>
+          <span className="eyebrow">Readiness target for a {targetScore} score goal</span>
+          <h2>{accuracyTarget}%+ timed mixed accuracy</h2>
+          <p>A coaching target for practice—not a guaranteed score conversion.</p>
+        </div>
+        <div className="accuracy-target-panel__metrics">
+          <div><span>Easy + Medium</span><strong>95%+</strong><small>Before moving to Hard</small></div>
+          <div><span>Hard questions</span><strong>90%+</strong><small>Strong readiness</small></div>
+          <div><span>Recorded {section === 'Math' ? 'Math' : 'R&W'} drills</span><strong>{attempted ? `${averageAccuracy}%` : '—'}</strong><small>{attempted ? `${correct}/${attempted} correct` : 'No drill evidence yet'}</small></div>
+        </div>
+      </section>
 
       <section className="stats-grid stats-grid--four">
         <StatCard label="Recent drill accuracy" value={`${averageAccuracy}%`} detail={`${correct} of ${attempted} correct`} icon={Target} tone={section === 'Math' ? 'teal' : 'violet'} />

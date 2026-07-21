@@ -110,9 +110,9 @@ function Dashboard({ bundle, demoMode, onDataChanged }: { bundle: DashboardBundl
       case 'scores':
         return <ScoresPage tests={bundle.practiceTests} targetScore={bundle.student.targetScore} />
       case 'reading-writing':
-        return <SkillPage key="reading-writing" section="Reading & Writing" allSkills={bundle.skills} drills={bundle.drills} tests={bundle.practiceTests} />
+        return <SkillPage key="reading-writing" section="Reading & Writing" allSkills={bundle.skills} drills={bundle.drills} tests={bundle.practiceTests} targetScore={bundle.student.targetScore} />
       case 'math':
-        return <SkillPage key="math" section="Math" allSkills={bundle.skills} drills={bundle.drills} tests={bundle.practiceTests} />
+        return <SkillPage key="math" section="Math" allSkills={bundle.skills} drills={bundle.drills} tests={bundle.practiceTests} targetScore={bundle.student.targetScore} />
       case 'books':
         return <BooksPage books={bundle.books} resources={bundle.learningResources} />
       case 'how-it-works':
