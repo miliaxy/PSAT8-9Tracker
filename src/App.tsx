@@ -13,9 +13,10 @@ const WeekPage = lazy(() => import('./pages/WeekPage').then((module) => ({ defau
 const ScoresPage = lazy(() => import('./pages/ScoresPage').then((module) => ({ default: module.ScoresPage })))
 const SkillPage = lazy(() => import('./pages/SkillPage').then((module) => ({ default: module.SkillPage })))
 const BooksPage = lazy(() => import('./pages/BooksPage').then((module) => ({ default: module.BooksPage })))
+const CoachingRulesPage = lazy(() => import('./pages/CoachingRulesPage').then((module) => ({ default: module.CoachingRulesPage })))
 const PlannerPage = lazy(() => import('./pages/PlannerPage').then((module) => ({ default: module.PlannerPage })))
 
-const validViews: ViewId[] = ['today', 'week', 'scores', 'reading-writing', 'math', 'books', 'planner']
+const validViews: ViewId[] = ['today', 'week', 'scores', 'reading-writing', 'math', 'books', 'how-it-works', 'planner']
 const completionStorageKey = 'psat-pathway-demo-completed-tasks'
 
 function getInitialView(allowPlanner = false): ViewId {
@@ -114,6 +115,8 @@ function Dashboard({ bundle, demoMode, onDataChanged }: { bundle: DashboardBundl
         return <SkillPage key="math" section="Math" allSkills={bundle.skills} drills={bundle.drills} tests={bundle.practiceTests} />
       case 'books':
         return <BooksPage books={bundle.books} resources={bundle.learningResources} />
+      case 'how-it-works':
+        return <CoachingRulesPage />
       case 'planner':
         return canPlan
           ? <PlannerPage student={bundle.student} skills={bundle.skills} drills={bundle.drills} practiceTests={bundle.practiceTests} onPublished={onDataChanged ?? (() => undefined)} />

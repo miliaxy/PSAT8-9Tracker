@@ -6,13 +6,14 @@ import {
   ChevronDown,
   ClipboardPenLine,
   LayoutDashboard,
+  ListChecks,
   LogOut,
   PenLine,
   Target,
 } from 'lucide-react'
 import type { Student } from '../types/models'
 
-export type ViewId = 'today' | 'week' | 'scores' | 'reading-writing' | 'math' | 'books' | 'planner'
+export type ViewId = 'today' | 'week' | 'scores' | 'reading-writing' | 'math' | 'books' | 'how-it-works' | 'planner'
 
 interface AppShellProps {
   activeView: ViewId
@@ -32,6 +33,7 @@ const navItems: { id: ViewId; label: string; shortLabel: string; icon: typeof La
   { id: 'reading-writing', label: 'Reading & Writing', shortLabel: 'R&W', icon: PenLine },
   { id: 'math', label: 'Math', shortLabel: 'Math', icon: Calculator },
   { id: 'books', label: 'Books & Resources', shortLabel: 'Books', icon: BookOpen },
+  { id: 'how-it-works', label: 'How Coaching Works', shortLabel: 'Rules', icon: ListChecks },
   { id: 'planner', label: 'Planning Room', shortLabel: 'Plan', icon: ClipboardPenLine },
 ]
 
