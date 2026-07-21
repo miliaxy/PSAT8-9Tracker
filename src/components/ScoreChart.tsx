@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { useId } from 'react'
 import type { PracticeTest } from '../types/models'
 import { formatDate } from '../utils/format'
 
@@ -20,6 +21,7 @@ interface ScoreChartProps {
 }
 
 export function ScoreChart({ tests, compact = false, section = 'total', target = 1400 }: ScoreChartProps) {
+  const descriptionId = useId()
   const data = tests.map((test) => ({
     date: formatDate(test.date, { month: 'short' }),
     Total: test.totalScore,
@@ -27,12 +29,35 @@ export function ScoreChart({ tests, compact = false, section = 'total', target =
     Math: test.mathScore,
   }))
   const isSection = section !== 'total'
-  const domain = isSection ? [400, 720] : [800, 1450]
   const goal = isSection ? target / 2 : target
+  const seriesLabel = section === 'total' ? 'Total' : section === 'reading-writing' ? 'Reading & Writing' : 'Math'
+  const values = tests.map((test) => section === 'total' ? test.totalScore : section === 'reading-writing' ? test.readingWritingScore : test.mathScore)
+  const officialMinimum = isSection ? 120 : 240
+  const officialMaximum = isSection ? 720 : 1440
+  const observedMinimum = Math.min(...values, goal)
+  const observedMaximum = Math.max(...values, goal)
+  const step = isSection ? 50 : 100
+  const domain = [
+    Math.max(officialMinimum, Math.floor((observedMinimum - step) / step) * step),
+    Math.min(officialMaximum, Math.ceil((observedMaximum + step) / step) * step),
+  ]
+  const firstValue = values[0]
+  const latestValue = values.at(-1)
+  const change = firstValue === undefined || latestValue === undefined ? 0 : latestValue - firstValue
+  const summary = tests.length
+    ? `${seriesLabel} scores across ${tests.length} practice ${tests.length === 1 ? 'test' : 'tests'}. Latest score ${latestValue}. ${change === 0 ? 'No change' : `${change > 0 ? 'Up' : 'Down'} ${Math.abs(change)} points`} from the first recorded test. Goal ${Math.round(goal)}.`
+    : `No ${seriesLabel.toLowerCase()} practice-test scores recorded.`
 
   return (
-    <div className={compact ? 'chart chart--compact' : 'chart'} aria-label="Practice test score trend">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className={compact ? 'chart chart--compact' : 'chart'} role="group" aria-label={`${seriesLabel} score trend chart`} aria-describedby={descriptionId}>
+      <p className="sr-only" id={descriptionId}>{summary}</p>
+      <table className="sr-only">
+        <caption>{seriesLabel} practice-test score data</caption>
+        <thead><tr><th scope="col">Date</th><th scope="col">Score</th></tr></thead>
+        <tbody>{tests.map((test, index) => <tr key={test.id}><td>{formatDate(test.date)}</td><td>{values[index]}</td></tr>)}</tbody>
+      </table>
+      <div className="chart__visual" aria-hidden="true">
+        <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 10, right: 12, left: compact ? -24 : -8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e8eaf1" />
           <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: '#77809a', fontSize: 11 }} />
@@ -53,7 +78,8 @@ export function ScoreChart({ tests, compact = false, section = 'total', target =
           )}
           {!compact && section === 'total' && <Legend iconType="circle" />}
         </LineChart>
-      </ResponsiveContainer>
+        </ResponsiveContainer>
+      </div>
     </div>
   )
 }

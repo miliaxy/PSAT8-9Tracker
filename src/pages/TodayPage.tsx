@@ -9,7 +9,7 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { TaskCard } from '../components/TaskCard'
-import { PageHeader, ProgressBar, StatCard } from '../components/ui'
+import { EmptyState, PageHeader, ProgressBar, StatCard } from '../components/ui'
 import type { DailyTask, Drill, PracticeTest, Skill, Student, StudyPlan } from '../types/models'
 import { daysBetween, formatDate, formatLongDate } from '../utils/format'
 
@@ -57,9 +57,20 @@ export function TodayPage({ student, tasks, plan, practiceTests, drills, skills,
     .filter((task) => !completedTaskIds.has(task.id))
     .reduce((total, task) => total + task.minutes, 0)
   const dailyProgress = tasks.length ? Math.round((completedCount / tasks.length) * 100) : 0
-  const scoreProgress = Math.round(
-    ((student.currentScore - student.baselineScore) / (student.targetScore - student.baselineScore)) * 100,
-  )
+  const scoreJourney = student.targetScore - student.baselineScore
+  const scoreProgress = scoreJourney <= 0
+    ? student.currentScore >= student.targetScore ? 100 : 0
+    : Math.max(0, Math.min(100, Math.round(((student.currentScore - student.baselineScore) / scoreJourney) * 100)))
+  const pointsToGoal = Math.max(0, student.targetScore - student.currentScore)
+  const daysToTest = daysBetween(todayKey, student.testDate)
+  const nextIncompleteTask = tasks.find((task) => !completedTaskIds.has(task.id))
+
+  const continueNextTask = () => {
+    if (!nextIncompleteTask) return
+    const taskCard = document.getElementById(`task-${nextIncompleteTask.id}`)
+    taskCard?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' })
+    taskCard?.focus({ preventScroll: true })
+  }
 
   return (
     <>
@@ -97,7 +108,7 @@ export function TodayPage({ student, tasks, plan, practiceTests, drills, skills,
           <ProgressBar value={scoreProgress} tone="gold" label="Progress from baseline to target score" />
           <div className="score-hero__footer">
             <span>{scoreProgress}% of the journey from baseline</span>
-            <span>{student.targetScore - student.currentScore} points to go</span>
+            <span>{pointsToGoal ? `${pointsToGoal} points to go` : 'Goal reached'}</span>
           </div>
         </article>
 
@@ -112,7 +123,7 @@ export function TodayPage({ student, tasks, plan, practiceTests, drills, skills,
             <span className="eyebrow">Today’s plan</span>
             <h2>{tasks.length > 0 && completedCount === tasks.length ? 'Great work—you’re done!' : 'A focused finish'}</h2>
             <p><Clock3 size={15} /> {remainingMinutes} minutes remaining of {totalMinutes}</p>
-            <p><CalendarDays size={15} /> Test in {daysBetween(todayKey, student.testDate)} days</p>
+            <p><CalendarDays size={15} /> {daysToTest >= 0 ? `Test in ${daysToTest} days` : 'Test date has passed'}</p>
           </div>
         </article>
       </section>
@@ -121,8 +132,20 @@ export function TodayPage({ student, tasks, plan, practiceTests, drills, skills,
         <StatCard label="Current score" value={student.currentScore} detail={previousTest ? `${latestGain >= 0 ? '+' : ''}${latestGain} since ${formatDate(previousTest.date)}` : 'Latest recorded full test'} icon={CircleGauge} tone="violet" />
         <StatCard label="Tests logged" value={practiceTests.length} detail={latestTest ? `Latest: ${formatDate(latestTest.date)}` : 'No test records yet'} icon={Sparkles} tone="gold" />
         <StatCard label="Skills strong" value={`${strongSkills} / ${skills.length}`} detail="Strong or mastered" icon={CheckCircle2} tone="teal" />
-        <StatCard label="PSAT 8/9 test day" value={formatDate(student.testDate, { month: 'short', day: 'numeric' })} detail={`${daysBetween(todayKey, student.testDate)} days away`} icon={CalendarDays} tone="blue" />
+        <StatCard label="PSAT 8/9 test day" value={formatDate(student.testDate, { month: 'short', day: 'numeric' })} detail={daysToTest >= 0 ? `${daysToTest} days away` : 'Date has passed'} icon={CalendarDays} tone="blue" />
       </section>
+
+      {nextIncompleteTask && (
+        <section className="next-action-strip" aria-labelledby="next-action-title">
+          <div className="next-action-strip__icon"><ArrowRight size={19} /></div>
+          <div>
+            <span className="eyebrow">Continue next</span>
+            <h2 id="next-action-title">{nextIncompleteTask.title}</h2>
+            <p>{nextIncompleteTask.category} · {nextIncompleteTask.minutes} minutes</p>
+          </div>
+          <button className="button button--primary" type="button" onClick={continueNextTask}>Go to assignment <ArrowRight size={15} /></button>
+        </section>
+      )}
 
       <div className="content-grid content-grid--today">
         <section className="panel today-plan">
@@ -146,6 +169,7 @@ export function TodayPage({ student, tasks, plan, practiceTests, drills, skills,
                 onResultSaved={canRecordResults ? onResultSaved : undefined}
               />
             ))}
+            {!tasks.length && <EmptyState title="Nothing assigned today" description="Use View full week to check upcoming work or enjoy the planned rest day." />}
           </div>
         </section>
 

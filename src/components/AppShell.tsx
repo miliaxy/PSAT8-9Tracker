@@ -3,14 +3,16 @@ import {
   BookOpen,
   CalendarDays,
   Calculator,
-  ChevronDown,
   ClipboardPenLine,
   LayoutDashboard,
   ListChecks,
   LogOut,
+  Menu,
   PenLine,
   Target,
+  X,
 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import type { Student } from '../types/models'
 
 export type ViewId = 'today' | 'week' | 'scores' | 'reading-writing' | 'math' | 'books' | 'how-it-works' | 'planner'
@@ -37,13 +39,53 @@ const navItems: { id: ViewId; label: string; shortLabel: string; icon: typeof La
   { id: 'planner', label: 'Planning Room', shortLabel: 'Plan', icon: ClipboardPenLine },
 ]
 
+const mobilePrimaryViews: ViewId[] = ['today', 'week', 'reading-writing', 'math']
+
+const viewTitles: Record<ViewId, string> = {
+  today: 'Today',
+  week: 'Weekly Plan',
+  scores: 'Scores',
+  'reading-writing': 'Reading & Writing',
+  math: 'Math',
+  books: 'Books & Resources',
+  'how-it-works': 'How Coaching Works',
+  planner: 'Planning Room',
+}
+
 export function AppShell({ activeView, onNavigate, student, dataMode, showPlanner = false, accountLabel, onSignOut, children }: AppShellProps) {
   const visibleNavItems = navItems.filter((item) => item.id !== 'planner' || showPlanner)
+  const mobilePrimaryItems = visibleNavItems.filter((item) => mobilePrimaryViews.includes(item.id))
+  const mobileMoreItems = visibleNavItems.filter((item) => !mobilePrimaryViews.includes(item.id))
+  const [moreOpen, setMoreOpen] = useState(false)
+  const mainRef = useRef<HTMLElement>(null)
+  const moreDialogRef = useRef<HTMLDialogElement>(null)
+  const initialView = useRef(activeView)
+
+  useEffect(() => {
+    document.title = `${viewTitles[activeView]} · PSAT Pathway`
+    if (initialView.current !== activeView) {
+      mainRef.current?.focus({ preventScroll: true })
+      initialView.current = activeView
+    }
+  }, [activeView])
+
+  useEffect(() => {
+    const dialog = moreDialogRef.current
+    if (!dialog) return
+    if (moreOpen && !dialog.open) dialog.showModal()
+    if (!moreOpen && dialog.open) dialog.close()
+  }, [moreOpen])
+
+  const navigate = (view: ViewId) => {
+    setMoreOpen(false)
+    onNavigate(view)
+  }
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">Skip to main content</a>
       <aside className="sidebar">
-        <button className="brand" onClick={() => onNavigate('today')} aria-label="Go to Today">
+        <button className="brand" onClick={() => navigate('today')} aria-label="Go to Today">
           <span className="brand__mark"><Target size={21} /></span>
           <span>
             <strong>PSAT Pathway</strong>
@@ -57,7 +99,7 @@ export function AppShell({ activeView, onNavigate, student, dataMode, showPlanne
             <button
               key={id}
               className={activeView === id ? 'nav-item nav-item--active' : 'nav-item'}
-              onClick={() => onNavigate(id)}
+              onClick={() => navigate(id)}
               aria-current={activeView === id ? 'page' : undefined}
             >
               <Icon size={19} strokeWidth={2} />
@@ -73,7 +115,6 @@ export function AppShell({ activeView, onNavigate, student, dataMode, showPlanne
               <strong>{student.firstName}</strong>
               <small>Grade {student.grade} student</small>
             </div>
-            <ChevronDown size={15} />
           </div>
           <p className={dataMode === 'private' ? 'demo-label demo-label--private' : 'demo-label'}>
             {dataMode === 'private' ? 'Private profile · Protected data' : 'Demo profile · Local data'}
@@ -88,28 +129,81 @@ export function AppShell({ activeView, onNavigate, student, dataMode, showPlanne
 
       <div className="app-main">
         <div className="mobile-topbar">
-          <button className="brand brand--mobile" onClick={() => onNavigate('today')}>
+          <button className="brand brand--mobile" onClick={() => navigate('today')} aria-label="Go to Today">
             <span className="brand__mark"><Target size={18} /></span>
             <strong>PSAT Pathway</strong>
           </button>
-          <span className="avatar avatar--small">{student.avatarInitials}</span>
+          <button className="mobile-account" type="button" onClick={() => setMoreOpen(true)} aria-label="Open account and more pages" aria-expanded={moreOpen} aria-haspopup="dialog" aria-controls="mobile-more-dialog">
+            <span className="avatar avatar--small">{student.avatarInitials}</span>
+          </button>
         </div>
-        <main className="content">{children}</main>
+        <main className="content" id="main-content" ref={mainRef} tabIndex={-1} aria-label={`${viewTitles[activeView]} page`}>{children}</main>
       </div>
 
       <nav className="mobile-nav" aria-label="Mobile navigation">
-        {visibleNavItems.map(({ id, shortLabel, icon: Icon }) => (
+        {mobilePrimaryItems.map(({ id, shortLabel, icon: Icon }) => (
           <button
             key={id}
             className={activeView === id ? 'mobile-nav__item mobile-nav__item--active' : 'mobile-nav__item'}
-            onClick={() => onNavigate(id)}
+            onClick={() => navigate(id)}
             aria-current={activeView === id ? 'page' : undefined}
           >
             <Icon size={19} />
             <span>{shortLabel}</span>
           </button>
         ))}
+        <button
+          className={mobileMoreItems.some((item) => item.id === activeView) ? 'mobile-nav__item mobile-nav__item--active' : 'mobile-nav__item'}
+          type="button"
+          onClick={() => setMoreOpen(true)}
+          aria-expanded={moreOpen}
+          aria-haspopup="dialog"
+          aria-controls="mobile-more-dialog"
+        >
+          <Menu size={19} />
+          <span>More</span>
+        </button>
       </nav>
+
+      <dialog
+        id="mobile-more-dialog"
+        className="mobile-more-dialog"
+        ref={moreDialogRef}
+        aria-labelledby="mobile-more-title"
+        onClose={() => setMoreOpen(false)}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) setMoreOpen(false)
+        }}
+      >
+        <div className="mobile-more-sheet">
+          <div className="mobile-more-sheet__header">
+            <div>
+              <span className="eyebrow">Workspace</span>
+              <h2 id="mobile-more-title">More pages</h2>
+            </div>
+            <button className="icon-button" type="button" onClick={() => setMoreOpen(false)} aria-label="Close more pages"><X size={20} /></button>
+          </div>
+          <nav className="mobile-more-grid" aria-label="More pages">
+            {mobileMoreItems.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                className={activeView === id ? 'mobile-more-item mobile-more-item--active' : 'mobile-more-item'}
+                type="button"
+                onClick={() => navigate(id)}
+                aria-current={activeView === id ? 'page' : undefined}
+              >
+                <Icon size={20} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </nav>
+          <div className="mobile-account-card">
+            <span className="avatar">{student.avatarInitials}</span>
+            <div><strong>{student.firstName}</strong><small>{dataMode === 'private' ? 'Private profile' : 'Demo profile'}</small></div>
+            {onSignOut && <button type="button" onClick={() => { setMoreOpen(false); onSignOut() }}><LogOut size={15} /> Sign out</button>}
+          </div>
+        </div>
+      </dialog>
     </div>
   )
 }

@@ -5,12 +5,14 @@ import {
   Filter,
   GraduationCap,
   Lightbulb,
+  Search,
   Target,
+  X,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { ScoreChart } from '../components/ScoreChart'
 import { SkillCard } from '../components/SkillCard'
-import { PageHeader, ProgressBar, StatCard, StatusBadge } from '../components/ui'
+import { EmptyState, PageHeader, ProgressBar, StatCard, StatusBadge } from '../components/ui'
 import type { Drill, PracticeTest, Section, Skill } from '../types/models'
 import { formatDate } from '../utils/format'
 
@@ -58,6 +60,7 @@ export function SkillPage({ section, allSkills, drills, tests, targetScore }: Sk
   })
   const [domainFilter, setDomainFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [skillQuery, setSkillQuery] = useState('')
 
   const filteredSkills = sectionSkills.filter((skill) => {
     const matchesDomain = domainFilter === 'all' || skill.domain === domainFilter
@@ -65,7 +68,9 @@ export function SkillPage({ section, allSkills, drills, tests, targetScore }: Sk
       statusFilter === 'all' ||
       (statusFilter === 'strong' && ['Strong', 'Mastered'].includes(skill.combinedStatus)) ||
       (statusFilter === 'attention' && !['Strong', 'Mastered'].includes(skill.combinedStatus))
-    return matchesDomain && matchesStatus
+    const normalizedQuery = skillQuery.trim().toLowerCase()
+    const matchesQuery = !normalizedQuery || `${skill.name} ${skill.domain} ${skill.description}`.toLowerCase().includes(normalizedQuery)
+    return matchesDomain && matchesStatus && matchesQuery
   })
   const groupedSkills = domains
     .map((domain) => ({
@@ -76,7 +81,7 @@ export function SkillPage({ section, allSkills, drills, tests, targetScore }: Sk
 
   const attempted = sectionDrills.reduce((sum, drill) => sum + drill.attempted, 0)
   const correct = sectionDrills.reduce((sum, drill) => sum + drill.correct, 0)
-  const averageAccuracy = attempted ? Math.round((correct / attempted) * 100) : 0
+  const averageAccuracy = attempted ? Math.round((correct / attempted) * 100) : undefined
   const accuracyTarget = mixedAccuracyTarget(targetScore)
   const strongSkills = sectionSkills.filter((skill) => ['Strong', 'Mastered'].includes(skill.combinedStatus)).length
   const improvingSkills = sectionSkills.filter((skill) => skill.trend === 'up').length
@@ -105,15 +110,15 @@ export function SkillPage({ section, allSkills, drills, tests, targetScore }: Sk
         <div className="accuracy-target-panel__metrics">
           <div><span>Easy + Medium</span><strong>95%+</strong><small>Before moving to Hard</small></div>
           <div><span>Hard questions</span><strong>90%+</strong><small>Strong readiness</small></div>
-          <div><span>Recorded {section === 'Math' ? 'Math' : 'R&W'} drills</span><strong>{attempted ? `${averageAccuracy}%` : '—'}</strong><small>{attempted ? `${correct}/${attempted} correct` : 'No drill evidence yet'}</small></div>
+          <div><span>Recorded {section === 'Math' ? 'Math' : 'R&W'} drills</span><strong>{averageAccuracy === undefined ? '—' : `${averageAccuracy}%`}</strong><small>{attempted ? `${correct}/${attempted} correct` : 'No drill evidence yet'}</small></div>
         </div>
       </section>
 
       <section className="stats-grid stats-grid--four">
-        <StatCard label="Recent drill accuracy" value={`${averageAccuracy}%`} detail={`${correct} of ${attempted} correct`} icon={Target} tone={section === 'Math' ? 'teal' : 'violet'} />
+        <StatCard label="Recorded drill accuracy" value={averageAccuracy === undefined ? '—' : `${averageAccuracy}%`} detail={attempted ? `${correct} of ${attempted} correct` : 'No drill evidence yet'} icon={Target} tone={section === 'Math' ? 'teal' : 'violet'} />
         <StatCard label="Strong skills" value={`${strongSkills} / ${sectionSkills.length}`} detail="Strong or mastered" icon={CheckCircle2} tone="teal" />
         <StatCard label="Trending up" value={improvingSkills} detail="Skills gaining momentum" icon={Activity} tone="gold" />
-        <StatCard label="Practice sessions" value={sectionDrills.length} detail="Most recent two weeks" icon={Clock3} tone="blue" />
+        <StatCard label="Practice sessions" value={sectionDrills.length} detail="All recorded drills" icon={Clock3} tone="blue" />
       </section>
 
       <section className="skill-overview-grid">
@@ -126,7 +131,7 @@ export function SkillPage({ section, allSkills, drills, tests, targetScore }: Sk
             tests={tests}
             compact
             section={section === 'Math' ? 'math' : 'reading-writing'}
-            target={1400}
+            target={targetScore}
           />
         </article>
 
@@ -144,12 +149,12 @@ export function SkillPage({ section, allSkills, drills, tests, targetScore }: Sk
                 <strong>{summary.domain}</strong>
                 <div className="domain-summary-signal">
                   <span>Practice tests</span>
-                  <ProgressBar value={summary.testAccuracy ?? 0} tone="violet" label={`${summary.domain} practice-test accuracy`} />
+                  <ProgressBar value={summary.testAccuracy} tone="violet" label={`${summary.domain} practice-test accuracy`} />
                   <small>{summary.testAccuracy === undefined ? 'No evidence' : `${summary.testCorrect}/${summary.testAttempted} · ${summary.testAccuracy}%`}</small>
                 </div>
                 <div className="domain-summary-signal">
                   <span>Daily drills</span>
-                  <ProgressBar value={summary.drillAccuracy ?? 0} tone="teal" label={`${summary.domain} drill accuracy`} />
+                  <ProgressBar value={summary.drillAccuracy} tone="teal" label={`${summary.domain} drill accuracy`} />
                   <small>{summary.drillAccuracy === undefined ? 'No evidence' : `${summary.drillCorrect}/${summary.drillAttempted} · ${summary.drillAccuracy}%`}</small>
                 </div>
               </div>
@@ -177,6 +182,11 @@ export function SkillPage({ section, allSkills, drills, tests, targetScore }: Sk
             </h2>
           </div>
           <div className="filters">
+            <label className="filter-search">
+              <Search size={14} />
+              <span className="sr-only">Search skills</span>
+              <input value={skillQuery} onChange={(event) => setSkillQuery(event.target.value)} placeholder="Search skills" />
+            </label>
             <label>
               <Filter size={14} />
               <span className="sr-only">Filter by domain</span>
@@ -193,6 +203,9 @@ export function SkillPage({ section, allSkills, drills, tests, targetScore }: Sk
                 <option value="strong">Strong / mastered</option>
               </select>
             </label>
+            {(skillQuery || domainFilter !== 'all' || statusFilter !== 'all') && (
+              <button className="filter-clear" type="button" onClick={() => { setSkillQuery(''); setDomainFilter('all'); setStatusFilter('all') }}><X size={14} /> Clear</button>
+            )}
           </div>
         </div>
         <div className="skill-domain-list">
@@ -207,6 +220,7 @@ export function SkillPage({ section, allSkills, drills, tests, targetScore }: Sk
               </div>
             </section>
           ))}
+          {!groupedSkills.length && <EmptyState title="No skills match these filters" description="Clear a filter or try a different search term." />}
         </div>
       </section>
 
@@ -215,9 +229,10 @@ export function SkillPage({ section, allSkills, drills, tests, targetScore }: Sk
           <div><span className="eyebrow">Skill-specific evidence</span><h2>Recent drill history</h2></div>
           <span className="muted-caption">College Board question bank</span>
         </div>
-        <div className="drill-table-wrap">
+        <div className="drill-table-wrap" role="region" aria-label="Drill history; scroll horizontally for all columns" tabIndex={0}>
           <table className="drill-table">
-            <thead><tr><th>Date</th><th>Skill</th><th>Domain</th><th>Difficulty</th><th>Result</th><th>Time</th><th>Signal</th></tr></thead>
+            <caption className="sr-only">Recorded drill history for {sectionName}</caption>
+            <thead><tr><th scope="col">Date</th><th scope="col">Skill</th><th scope="col">Domain</th><th scope="col">Difficulty</th><th scope="col">Result</th><th scope="col">Time</th><th scope="col">Signal</th></tr></thead>
             <tbody>
               {sectionDrills.map((drill) => (
                 <tr key={drill.id}>

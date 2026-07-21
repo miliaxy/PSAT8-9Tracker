@@ -27,7 +27,7 @@ export function SkillCard({ skill, showDomain = true }: { skill: Skill; showDoma
             <strong>{skill.practiceTestEvidence.rating}</strong>
             <span>{testAccuracy === undefined ? 'No score' : `${testAccuracy}%`}</span>
           </div>
-          <ProgressBar value={testAccuracy ?? 0} tone="violet" label={`${skill.name} practice test accuracy`} />
+          <ProgressBar value={testAccuracy} tone="violet" label={`${skill.name} practice test accuracy`} />
           <small>{skill.practiceTestEvidence.totalCorrect}/{skill.practiceTestEvidence.totalAttempted} correct across tests</small>
         </div>
         <div className="evidence-card evidence-card--drill">
@@ -38,7 +38,7 @@ export function SkillCard({ skill, showDomain = true }: { skill: Skill; showDoma
             <strong>{skill.drillEvidence.rating}</strong>
             <span>{drillAccuracy === undefined ? 'No score' : `${drillAccuracy}%`}</span>
           </div>
-          <ProgressBar value={drillAccuracy ?? 0} tone="teal" label={`${skill.name} drill accuracy`} />
+          <ProgressBar value={drillAccuracy} tone="teal" label={`${skill.name} drill accuracy`} />
           <small>{skill.drillEvidence.totalCorrect}/{skill.drillEvidence.totalAttempted} correct across drills</small>
         </div>
       </div>

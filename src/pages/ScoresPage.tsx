@@ -41,7 +41,7 @@ function TestFormatReference() {
           </div>
         ))}
       </div>
-      <a href="https://satsuite.collegeboard.org/psat-8-9/whats-on-the-test/structure" target="_blank" rel="noreferrer">
+      <a href="https://satsuite.collegeboard.org/psat-8-9/whats-on-the-test/structure" target="_blank" rel="noreferrer" aria-label="Official test details (opens in a new tab)">
         Official test details <ExternalLink size={13} />
       </a>
     </section>
@@ -91,7 +91,7 @@ export function ScoresPage({ tests, targetScore }: { tests: PracticeTest[]; targ
       <section className="stats-grid stats-grid--four">
         <StatCard label="Latest score" value={latestTest.totalScore} detail={latestTest.name} icon={CircleGauge} tone="violet" />
         <StatCard label="Total growth" value={`${scoreGain >= 0 ? '+' : ''}${scoreGain}`} detail={`Since ${formatDate(firstTest.date)}`} icon={ArrowUpRight} tone="teal" />
-        <StatCard label="Points to goal" value={targetScore - latestTest.totalScore} detail={`Target: ${targetScore}`} icon={Goal} tone="gold" />
+        <StatCard label="Points to goal" value={Math.max(0, targetScore - latestTest.totalScore)} detail={latestTest.totalScore >= targetScore ? `Goal of ${targetScore} reached` : `Target: ${targetScore}`} icon={Goal} tone="gold" />
         <StatCard label="Tests completed" value={tests.length} detail={`Latest: ${formatDate(latestTest.date)}`} icon={ListChecks} tone="blue" />
       </section>
 
@@ -131,23 +131,19 @@ export function ScoresPage({ tests, targetScore }: { tests: PracticeTest[]; targ
           <div><span className="eyebrow">History</span><h2>Practice-test records</h2></div>
           <span className="muted-caption">Select a test to inspect it</span>
         </div>
-        <div className="test-table-wrap">
+        <div className="test-table-wrap" role="region" aria-label="Practice-test history; scroll horizontally for all columns" tabIndex={0}>
           <table className="test-table">
+            <caption className="sr-only">Practice-test score history. Choose a test name to inspect its details.</caption>
             <thead>
-              <tr><th>Test</th><th>Date</th><th>Total</th><th>R&W</th><th>Math</th><th>Questions</th></tr>
+              <tr><th scope="col">Test</th><th scope="col">Date</th><th scope="col">Total</th><th scope="col">R&amp;W</th><th scope="col">Math</th><th scope="col">Questions</th></tr>
             </thead>
             <tbody>
               {[...tests].reverse().map((test) => (
                 <tr
                   key={test.id}
                   className={test.id === selectedTest.id ? 'test-row test-row--selected' : 'test-row'}
-                  onClick={() => setSelectedTestId(test.id)}
-                  tabIndex={0}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') setSelectedTestId(test.id)
-                  }}
                 >
-                  <td><strong>{test.name}</strong>{test.id === latestTest.id && <span className="latest-chip">Latest</span>}</td>
+                  <td><button type="button" className="test-select-button" onClick={() => setSelectedTestId(test.id)} aria-pressed={test.id === selectedTest.id} aria-controls="selected-test-detail"><strong>{test.name}</strong>{test.id === latestTest.id && <span className="latest-chip">Latest</span>}</button></td>
                   <td>{formatDate(test.date, { month: 'short', day: 'numeric', year: 'numeric' })}</td>
                   <td><strong>{test.totalScore}</strong></td>
                   <td>{test.readingWritingScore}</td>
@@ -162,11 +158,11 @@ export function ScoresPage({ tests, targetScore }: { tests: PracticeTest[]; targ
         </div>
       </section>
 
-      <section className="test-detail">
+      <section className="test-detail" id="selected-test-detail" aria-labelledby="selected-test-heading">
         <div className="test-detail__header">
           <div>
             <span className="eyebrow">Selected record · {formatLongDate(selectedTest.date)}</span>
-            <h2>{selectedTest.name}</h2>
+            <h2 id="selected-test-heading">{selectedTest.name}</h2>
             {selectedTest.reliabilityNote && <p>{selectedTest.reliabilityNote}</p>}
           </div>
           <div className="test-detail__score"><span>Total</span><strong>{selectedTest.totalScore}</strong></div>

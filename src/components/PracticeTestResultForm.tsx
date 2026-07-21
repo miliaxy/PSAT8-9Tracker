@@ -44,6 +44,7 @@ export function PracticeTestResultForm({ studentId, task, skills, onSaved, onCan
   const [working, setWorking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const validationId = `practice-test-validation-${task.id}`
 
   const validationError = result.readingWritingScore < 120 || result.readingWritingScore > 720
     ? 'Reading & Writing score must be between 120 and 720.'
@@ -87,7 +88,7 @@ export function PracticeTestResultForm({ studentId, task, skills, onSaved, onCan
   }
 
   return (
-    <div className="assignment-result-form">
+    <form className="assignment-result-form" aria-busy={working} onSubmit={(event) => { event.preventDefault(); void save() }}>
       <div className="assignment-result-form__header">
         <div><span className="eyebrow">Full-test evidence</span><h4>Record practice-test result</h4></div>
         <span className="assignment-prefill">Detailed mistakes are optional</span>
@@ -96,13 +97,13 @@ export function PracticeTestResultForm({ studentId, task, skills, onSaved, onCan
       {success && <div className="inline-success" role="status"><CheckCircle2 size={16} /> {success}</div>}
 
       <div className="practice-result__identity">
-        <label className="field-label field-label--wide">Practice test<input maxLength={160} value={result.name} onChange={(event) => setResult({ ...result, name: event.target.value })} /></label>
+        <label className="field-label field-label--wide">Practice test<input maxLength={160} value={result.name} aria-invalid={!result.name.trim()} aria-describedby={validationError ? validationId : undefined} onChange={(event) => setResult({ ...result, name: event.target.value })} /></label>
         <label className="field-label">Date<input type="date" value={result.date} onChange={(event) => setResult({ ...result, date: event.target.value })} /></label>
       </div>
       <div className="practice-result__scores">
-        <label className="field-label">Reading &amp; Writing<input type="number" min="120" max="720" step="10" value={result.readingWritingScore} onChange={(event) => setSectionScore('readingWritingScore', Number(event.target.value))} /></label>
+        <label className="field-label">Reading &amp; Writing<input type="number" min="120" max="720" step="10" value={result.readingWritingScore} aria-invalid={result.readingWritingScore < 120 || result.readingWritingScore > 720} aria-describedby={validationError ? validationId : undefined} onChange={(event) => setSectionScore('readingWritingScore', Number(event.target.value))} /></label>
         <span>+</span>
-        <label className="field-label">Math<input type="number" min="120" max="720" step="10" value={result.mathScore} onChange={(event) => setSectionScore('mathScore', Number(event.target.value))} /></label>
+        <label className="field-label">Math<input type="number" min="120" max="720" step="10" value={result.mathScore} aria-invalid={result.mathScore < 120 || result.mathScore > 720} aria-describedby={validationError ? validationId : undefined} onChange={(event) => setSectionScore('mathScore', Number(event.target.value))} /></label>
         <span>=</span>
         <div className="practice-result__total"><span>Total</span><strong>{result.totalScore}</strong></div>
       </div>
@@ -129,10 +130,10 @@ export function PracticeTestResultForm({ studentId, task, skills, onSaved, onCan
       </div>
 
       <div className="drill-entry__actions">
-        {validationError && <p>{validationError}</p>}
+        {validationError && <p id={validationId} role="alert">{validationError}</p>}
         <button className="button button--secondary" type="button" onClick={onCancel}><X size={15} /> Cancel</button>
-        <button className="button button--primary" type="button" disabled={Boolean(validationError) || working || Boolean(success)} onClick={() => void save()}>{working ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />} Save test result</button>
+        <button className="button button--primary" type="submit" disabled={Boolean(validationError) || working || Boolean(success)}>{working ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />} {working ? 'Saving…' : 'Save test result'}</button>
       </div>
-    </div>
+    </form>
   )
 }

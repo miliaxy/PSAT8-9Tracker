@@ -1,4 +1,4 @@
-import { CalendarCheck2, ChevronDown, Clock3, RotateCcw, Sparkles } from 'lucide-react'
+import { CalendarCheck2, ChevronDown, Clock3, Expand, LocateFixed, Minimize2, Printer, RotateCcw, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { TaskCard } from '../components/TaskCard'
 import { PageHeader, ProgressBar } from '../components/ui'
@@ -29,7 +29,8 @@ export function WeekPage({ plan, completedTaskIds, onToggleTask, studentId, skil
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   const firstDay = plan.days[0]?.date ?? plan.weekOf
   const lastDay = plan.days.at(-1)?.date ?? plan.weekOf
-  const [openDay, setOpenDay] = useState(plan.days.some((day) => day.date === todayKey) ? todayKey : firstDay)
+  const initialOpenDay = plan.days.some((day) => day.date === todayKey) ? todayKey : firstDay
+  const [openDays, setOpenDays] = useState<Set<string>>(() => new Set(initialOpenDay ? [initialOpenDay] : []))
   const tasks = plan.days.flatMap((day) => day.tasks)
   const completedCount = tasks.filter((task) => completedTaskIds.has(task.id)).length
   const totalMinutes = tasks.reduce((sum, task) => sum + task.minutes, 0)
@@ -37,6 +38,30 @@ export function WeekPage({ plan, completedTaskIds, onToggleTask, studentId, skil
     .filter((task) => completedTaskIds.has(task.id))
     .reduce((sum, task) => sum + task.minutes, 0)
   const progress = tasks.length ? Math.round((completedCount / tasks.length) * 100) : 0
+  const reviewDay = plan.days.find((day) => day.dayType === 'review')
+  const allDaysOpen = plan.days.length > 0 && openDays.size === plan.days.length
+
+  const toggleDay = (date: string) => {
+    setOpenDays((current) => {
+      const next = new Set(current)
+      if (next.has(date)) next.delete(date)
+      else next.add(date)
+      return next
+    })
+  }
+
+  const jumpToToday = () => {
+    if (!plan.days.some((day) => day.date === todayKey)) return
+    setOpenDays((current) => new Set(current).add(todayKey))
+    const todayCard = document.getElementById(`week-day-${todayKey}`)
+    todayCard?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' })
+    todayCard?.focus({ preventScroll: true })
+  }
+
+  const printPlan = () => {
+    setOpenDays(new Set(plan.days.map((day) => day.date)))
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => window.print()))
+  }
 
   return (
     <>
@@ -63,7 +88,7 @@ export function WeekPage({ plan, completedTaskIds, onToggleTask, studentId, skil
         </div>
         <div className="week-summary__metric">
           <RotateCcw size={20} />
-          <div><strong>Friday</strong><span>Mistake-review loop</span></div>
+          <div><strong>{reviewDay ? formatDate(reviewDay.date, { weekday: 'long' }) : 'Flexible'}</strong><span>{reviewDay ? 'Mistake-review loop' : 'Review when scheduled'}</span></div>
         </div>
       </section>
 
@@ -73,17 +98,24 @@ export function WeekPage({ plan, completedTaskIds, onToggleTask, studentId, skil
             <span className="eyebrow">Daily workload</span>
             <h2>{formatDate(firstDay, { month: 'long', day: 'numeric' })}–{formatDate(lastDay, { month: 'long', day: 'numeric' })}</h2>
           </div>
-          <div className="workload-legend" aria-label="Workload type legend">
-            <span><i className="dot dot--normal" /> Normal</span>
-            <span><i className="dot dot--light" /> Light</span>
-            <span><i className="dot dot--off" /> Off</span>
-            <span><i className="dot dot--long" /> Long</span>
+          <div className="week-panel__tools">
+            <div className="workload-legend" aria-label="Workload type legend">
+              <span><i className="dot dot--normal" /> Normal</span>
+              <span><i className="dot dot--light" /> Light</span>
+              <span><i className="dot dot--off" /> Off</span>
+              <span><i className="dot dot--long" /> Long</span>
+            </div>
+            <div className="week-controls" aria-label="Weekly-plan controls">
+              <button type="button" disabled={!plan.days.some((day) => day.date === todayKey)} onClick={jumpToToday}><LocateFixed size={15} /> Today</button>
+              <button type="button" onClick={() => setOpenDays(allDaysOpen ? new Set() : new Set(plan.days.map((day) => day.date)))}>{allDaysOpen ? <Minimize2 size={15} /> : <Expand size={15} />} {allDaysOpen ? 'Collapse' : 'Expand all'}</button>
+              <button type="button" onClick={printPlan}><Printer size={15} /> Print</button>
+            </div>
           </div>
         </div>
 
         <div className="week-days">
           {plan.days.map((day) => {
-            const isOpen = day.date === openDay
+            const isOpen = openDays.has(day.date)
             const isToday = day.date === todayKey
             const dayCompleted = day.tasks.filter((task) => completedTaskIds.has(task.id)).length
             const dayMinutes = day.tasks.reduce((sum, task) => sum + task.minutes, 0)
@@ -92,12 +124,15 @@ export function WeekPage({ plan, completedTaskIds, onToggleTask, studentId, skil
             return (
               <article
                 key={day.date}
+                id={`week-day-${day.date}`}
+                tabIndex={-1}
                 className={`week-day week-day--${day.dayType}${isToday ? ' week-day--today' : ''}`}
               >
                 <button
                   className="week-day__summary"
-                  onClick={() => setOpenDay(isOpen ? '' : day.date)}
+                  onClick={() => toggleDay(day.date)}
                   aria-expanded={isOpen}
+                  aria-controls={`week-details-${day.date}`}
                 >
                   <div className="week-day__date">
                     <span>{formatDate(day.date, { weekday: 'short' })}</span>
@@ -128,7 +163,7 @@ export function WeekPage({ plan, completedTaskIds, onToggleTask, studentId, skil
                 </button>
 
                 {isOpen && (
-                  <div className="week-day__details">
+                  <div className="week-day__details" id={`week-details-${day.date}`}>
                     {day.tasks.length ? (
                       day.tasks.map((task) => (
                         <TaskCard
@@ -146,7 +181,7 @@ export function WeekPage({ plan, completedTaskIds, onToggleTask, studentId, skil
                     ) : (
                       <div className="rest-day-copy">
                         <Sparkles size={20} />
-                        <div><strong>Nothing to make up.</strong><span>This rest day protects energy for the longer Saturday session.</span></div>
+                        <div><strong>Protected rest day.</strong><span>No assignments are scheduled. Rest supports the next focused session.</span></div>
                       </div>
                     )}
                   </div>

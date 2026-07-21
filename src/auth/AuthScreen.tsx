@@ -56,18 +56,19 @@ export function AuthScreen() {
               : 'New accounts start without access to any student. A parent administrator links them safely.'}
           </p>
 
-          <div className="auth-tabs" role="tablist" aria-label="Account action">
-            <button type="button" className={formMode === 'sign-in' ? 'auth-tab auth-tab--active' : 'auth-tab'} onClick={() => setFormMode('sign-in')}>Sign in</button>
-            <button type="button" className={formMode === 'create' ? 'auth-tab auth-tab--active' : 'auth-tab'} onClick={() => setFormMode('create')}>Create account</button>
+          <div className="auth-tabs" role="group" aria-label="Choose account action">
+            <button type="button" aria-pressed={formMode === 'sign-in'} className={formMode === 'sign-in' ? 'auth-tab auth-tab--active' : 'auth-tab'} onClick={() => setFormMode('sign-in')}>Sign in</button>
+            <button type="button" aria-pressed={formMode === 'create'} className={formMode === 'create' ? 'auth-tab auth-tab--active' : 'auth-tab'} onClick={() => setFormMode('create')}>Create account</button>
           </div>
 
-          <form className="auth-form" onSubmit={submit}>
+          <form className="auth-form" onSubmit={submit} aria-busy={busy}>
             {formMode === 'create' && (
               <label>Display name<input value={displayName} onChange={(event) => setDisplayName(event.target.value)} autoComplete="name" required /></label>
             )}
             <label>Email address<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required /></label>
             <label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={formMode === 'sign-in' ? 'current-password' : 'new-password'} minLength={8} required /></label>
-            {(authError || message) && <p className={authError ? 'auth-message auth-message--error' : 'auth-message'} role="status">{authError || message}</p>}
+            {authError && <p className="auth-message auth-message--error" role="alert">{authError}</p>}
+            {message && !authError && <p className="auth-message" role="status">{message}</p>}
             <button className="auth-submit" disabled={busy}>
               {busy ? 'Please wait…' : formMode === 'sign-in' ? 'Open dashboard' : 'Create account'}
               {!busy && <ArrowRight size={16} />}

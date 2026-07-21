@@ -53,6 +53,7 @@ export function DrillResultForm({ studentId, task, skills, onSaved, onCancel }: 
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const selectedSkill = availableSkills.find((skill) => skill.id === result.skillId)
+  const validationId = `drill-validation-${task.id}`
   const incorrect = Math.max(0, result.attempted - result.correct)
   const accuracy = result.attempted ? Math.round((result.correct / result.attempted) * 100) : 0
   const validationError = !result.skillId
@@ -92,7 +93,7 @@ export function DrillResultForm({ studentId, task, skills, onSaved, onCancel }: 
   }
 
   return (
-    <div className="assignment-result-form">
+    <form className="assignment-result-form" aria-busy={working} onSubmit={(event) => { event.preventDefault(); void save() }}>
       <div className="assignment-result-form__header">
         <div><span className="eyebrow">Assignment evidence</span><h4>Record drill result</h4></div>
         <span className="assignment-prefill">Date, skill and source prefilled</span>
@@ -102,7 +103,7 @@ export function DrillResultForm({ studentId, task, skills, onSaved, onCancel }: 
 
       <div className="drill-entry__grid">
         <label className="field-label field-label--wide">Skill
-          <select value={result.skillId} onChange={(event) => setResult({ ...result, skillId: event.target.value })}>
+          <select value={result.skillId} aria-invalid={!result.skillId} aria-describedby={validationError ? validationId : undefined} onChange={(event) => setResult({ ...result, skillId: event.target.value })}>
             <option value="">Choose skill</option>
             {availableSkills.map((skill) => <option key={skill.id} value={skill.id}>{skill.domain} · {skill.name}</option>)}
           </select>
@@ -112,15 +113,15 @@ export function DrillResultForm({ studentId, task, skills, onSaved, onCancel }: 
       </div>
 
       <div className="drill-entry__grid drill-entry__grid--score">
-        <label className="field-label">Attempted<input type="number" min="1" max="100" value={result.attempted} onChange={(event) => setResult({ ...result, attempted: Number(event.target.value) })} /></label>
-        <label className="field-label">Correct<input type="number" min="0" max={result.attempted} value={result.correct} onChange={(event) => setResult({ ...result, correct: Number(event.target.value) })} /></label>
+        <label className="field-label">Attempted<input type="number" min="1" max="100" value={result.attempted} aria-invalid={!Number.isInteger(result.attempted) || result.attempted < 1} aria-describedby={validationError ? validationId : undefined} onChange={(event) => setResult({ ...result, attempted: Number(event.target.value) })} /></label>
+        <label className="field-label">Correct<input type="number" min="0" max={result.attempted} value={result.correct} aria-invalid={!Number.isInteger(result.correct) || result.correct < 0 || result.correct > result.attempted} aria-describedby={validationError ? validationId : undefined} onChange={(event) => setResult({ ...result, correct: Number(event.target.value) })} /></label>
         <div className="drill-entry__result"><strong>{accuracy}%</strong><span>{incorrect} incorrect</span></div>
         <label className="field-label">Time allowed<input type="number" min="1" max="180" value={result.timeLimitMinutes ?? ''} onChange={(event) => setResult({ ...result, timeLimitMinutes: event.target.value ? Number(event.target.value) : undefined })} /></label>
         <label className="field-label">Time used<input type="number" min="0" max="180" step="0.5" placeholder="Optional" value={result.timeSpentMinutes ?? ''} onChange={(event) => setResult({ ...result, timeSpentMinutes: event.target.value ? Number(event.target.value) : undefined })} /></label>
       </div>
 
       <div className="drill-entry__grid">
-        <label className="field-label field-label--wide">Source<input maxLength={200} value={result.source} onChange={(event) => setResult({ ...result, source: event.target.value })} /></label>
+        <label className="field-label field-label--wide">Source<input maxLength={200} value={result.source} aria-invalid={!result.source.trim()} aria-describedby={validationError ? validationId : undefined} onChange={(event) => setResult({ ...result, source: event.target.value })} /></label>
         <label className="field-label field-label--wide">Session note<input maxLength={500} placeholder="Optional context" value={result.notes} onChange={(event) => setResult({ ...result, notes: event.target.value })} /></label>
       </div>
 
@@ -141,10 +142,10 @@ export function DrillResultForm({ studentId, task, skills, onSaved, onCancel }: 
       </div>
 
       <div className="drill-entry__actions">
-        {validationError && <p>{validationError}</p>}
+        {validationError && <p id={validationId} role="alert">{validationError}</p>}
         <button className="button button--secondary" type="button" onClick={onCancel}><X size={15} /> Cancel</button>
-        <button className="button button--primary" type="button" disabled={Boolean(validationError) || working || Boolean(success)} onClick={() => void save()}>{working ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />} Save result</button>
+        <button className="button button--primary" type="submit" disabled={Boolean(validationError) || working || Boolean(success)}>{working ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />} {working ? 'Saving…' : 'Save result'}</button>
       </div>
-    </div>
+    </form>
   )
 }

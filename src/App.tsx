@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
-import { LogOut, RefreshCw, ShieldCheck, UserRoundPlus } from 'lucide-react'
+import { LogOut, RefreshCw, RotateCcw, ShieldCheck, UserRoundPlus, X } from 'lucide-react'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { AuthScreen } from './auth/AuthScreen'
 import { AppShell, type ViewId } from './components/AppShell'
@@ -45,8 +45,9 @@ function Dashboard({ bundle, demoMode, onDataChanged }: { bundle: DashboardBundl
   const { profile, signOut } = useAuth()
   const canPlan = !demoMode && profile?.role === 'parent_admin'
   const [activeView, setActiveView] = useState<ViewId>(() => getInitialView(canPlan))
-  const [completedTaskIds, setCompletedTaskIds] = useState(() => initialCompletion(bundle, demoMode))
+  const [completionOverrides, setCompletionOverrides] = useState<Map<string, boolean>>(() => new Map())
   const [taskError, setTaskError] = useState<string | null>(null)
+  const [completionNotice, setCompletionNotice] = useState<{ taskId: string; previousCompleted: boolean; message: string } | null>(null)
 
   useEffect(() => {
     const handleHashChange = () => setActiveView(getInitialView(canPlan))
@@ -55,11 +56,36 @@ function Dashboard({ bundle, demoMode, onDataChanged }: { bundle: DashboardBundl
   }, [canPlan])
 
   const allTodayTaskIds = useMemo(() => new Set(bundle.todayTasks.map((task) => task.id)), [bundle.todayTasks])
+  const allTasks = useMemo(() => bundle.studyPlan.days.flatMap((day) => day.tasks), [bundle.studyPlan.days])
+  const serverCompletedTaskIds = useMemo(() => initialCompletion(bundle, demoMode), [bundle, demoMode])
+  const completedTaskIds = useMemo(() => {
+    const next = new Set(serverCompletedTaskIds)
+    completionOverrides.forEach((completed, taskId) => {
+      if (completed) next.add(taskId)
+      else next.delete(taskId)
+    })
+    return next
+  }, [completionOverrides, serverCompletedTaskIds])
+
+  const overrideCompletion = (taskId: string, completed: boolean) => {
+    setCompletionOverrides((current) => {
+      const next = new Map(current)
+      if (serverCompletedTaskIds.has(taskId) === completed) next.delete(taskId)
+      else next.set(taskId, completed)
+      return next
+    })
+  }
+
+  useEffect(() => {
+    if (!completionNotice) return
+    const timer = window.setTimeout(() => setCompletionNotice(null), 8000)
+    return () => window.clearTimeout(timer)
+  }, [completionNotice])
 
   const navigate = (view: ViewId) => {
     setActiveView(view)
     window.location.hash = view
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
   }
 
   const toggleTask = (taskId: string) => {
@@ -67,8 +93,14 @@ function Dashboard({ bundle, demoMode, onDataChanged }: { bundle: DashboardBundl
     const next = new Set(completedTaskIds)
     if (wasCompleted) next.delete(taskId)
     else next.add(taskId)
-    setCompletedTaskIds(next)
+    overrideCompletion(taskId, !wasCompleted)
     setTaskError(null)
+    const taskTitle = allTasks.find((task) => task.id === taskId)?.title ?? 'Assignment'
+    setCompletionNotice({
+      taskId,
+      previousCompleted: wasCompleted,
+      message: wasCompleted ? `${taskTitle} marked incomplete.` : `${taskTitle} marked complete.`,
+    })
 
     if (demoMode) {
       try {
@@ -82,8 +114,35 @@ function Dashboard({ bundle, demoMode, onDataChanged }: { bundle: DashboardBundl
     void setTaskCompletion(bundle.student.id, taskId, !wasCompleted)
       .then(() => onDataChanged?.())
       .catch(() => {
-        setCompletedTaskIds(completedTaskIds)
+        overrideCompletion(taskId, wasCompleted)
+        setCompletionNotice(null)
         setTaskError('That task change could not be saved. Please try again.')
+      })
+  }
+
+  const undoCompletion = () => {
+    if (!completionNotice) return
+    const { taskId, previousCompleted } = completionNotice
+    const next = new Set(completedTaskIds)
+    if (previousCompleted) next.add(taskId)
+    else next.delete(taskId)
+    overrideCompletion(taskId, previousCompleted)
+    setCompletionNotice(null)
+    setTaskError(null)
+
+    if (demoMode) {
+      try {
+        window.localStorage.setItem(completionStorageKey, JSON.stringify([...next]))
+      } catch {
+        // The demo remains usable if browser storage is unavailable.
+      }
+      return
+    }
+
+    void setTaskCompletion(bundle.student.id, taskId, previousCompleted)
+      .then(() => onDataChanged?.())
+      .catch(() => {
+        setTaskError('The completion change could not be undone. Refresh to see the saved status.')
       })
   }
 
@@ -141,6 +200,13 @@ function Dashboard({ bundle, demoMode, onDataChanged }: { bundle: DashboardBundl
       <Suspense fallback={<div className="page-loading"><span />Loading your dashboard…</div>}>
         {renderView()}
       </Suspense>
+      {completionNotice && (
+        <div className="completion-toast" role="status" aria-live="polite">
+          <span>{completionNotice.message}</span>
+          <button type="button" onClick={undoCompletion}><RotateCcw size={14} /> Undo</button>
+          <button className="completion-toast__close" type="button" onClick={() => setCompletionNotice(null)} aria-label="Dismiss completion message"><X size={15} /></button>
+        </div>
+      )}
     </AppShell>
   )
 }
@@ -208,11 +274,7 @@ function PrivateWorkspace() {
 
   if (state === 'loading') return <div className="workspace-state"><div className="page-loading"><span />Opening your private workspace…</div></div>
   if (state === 'ready' && bundle) {
-    const completionRevision = bundle.studyPlan.days
-      .flatMap((day) => day.tasks)
-      .map((task) => `${task.id}:${task.initialCompleted ? '1' : '0'}`)
-      .join('|')
-    return <Dashboard key={completionRevision} bundle={bundle} demoMode={false} onDataChanged={() => setReload((value) => value + 1)} />
+    return <Dashboard bundle={bundle} demoMode={false} onDataChanged={() => setReload((value) => value + 1)} />
   }
 
   return (

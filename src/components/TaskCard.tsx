@@ -47,7 +47,7 @@ function ResourceMeta({ resource }: { resource: string }) {
     <span className="task-card__resource-links">
       <ExternalLink size={12} />
       {links.map((link, index) => (
-        <a key={link[2]} href={link[2]} target="_blank" rel="noreferrer">
+        <a key={link[2]} href={link[2]} target="_blank" rel="noreferrer" aria-label={`${link[1] ?? (links.length === 1 ? 'Open resource' : `Open resource ${index + 1}`)} (opens in a new tab)`}>
           {link[1] ?? (links.length === 1 ? 'Open resource' : `Open resource ${index + 1}`)}
         </a>
       ))}
@@ -59,9 +59,10 @@ export function TaskCard({ task, completed, onToggle, compact = false, studentId
   const { icon: Icon, tone } = categoryMeta[task.category]
   const [showResultForm, setShowResultForm] = useState(false)
   const canRecordResult = Boolean(studentId && onResultSaved && (task.category === 'Drill' || task.category === 'Practice test'))
+  const resultFormId = `result-form-${task.id}`
 
   return (
-    <article className={`task-card${completed ? ' task-card--complete' : ''}${compact ? ' task-card--compact' : ''}`}>
+    <article id={`task-${task.id}`} tabIndex={-1} className={`task-card${completed ? ' task-card--complete' : ''}${compact ? ' task-card--compact' : ''}`}>
       <button
         className="task-card__check"
         onClick={() => onToggle(task.id)}
@@ -93,13 +94,13 @@ export function TaskCard({ task, completed, onToggle, compact = false, studentId
             {result ? (
               <span className="task-result-chip"><Check size={13} /> {isDrillResult(result) ? `${result.correct}/${result.attempted} · ${Math.round(result.accuracy)}%` : `Score ${result.totalScore}`}</span>
             ) : (
-              <button className="task-result-button" type="button" onClick={() => setShowResultForm((value) => !value)}><BarChart3 size={14} /> {showResultForm ? 'Close result form' : `Record ${task.category === 'Practice test' ? 'test' : 'drill'} result`}</button>
+              <button className="task-result-button" type="button" onClick={() => setShowResultForm((value) => !value)} aria-expanded={showResultForm} aria-controls={resultFormId}><BarChart3 size={14} /> {showResultForm ? 'Close result form' : `Record ${task.category === 'Practice test' ? 'test' : 'drill'} result`}</button>
             )}
           </div>
         )}
       </div>
       {showResultForm && studentId && onResultSaved && !result && (
-        <div className="task-card__result-form">
+        <div className="task-card__result-form" id={resultFormId}>
           {task.category === 'Practice test'
             ? <PracticeTestResultForm studentId={studentId} task={task} skills={skills} onSaved={onResultSaved} onCancel={() => setShowResultForm(false)} />
             : <DrillResultForm studentId={studentId} task={task} skills={skills} onSaved={onResultSaved} onCancel={() => setShowResultForm(false)} />}

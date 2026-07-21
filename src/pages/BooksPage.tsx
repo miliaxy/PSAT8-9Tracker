@@ -2,7 +2,6 @@ import {
   BookHeart,
   BookOpenCheck,
   Check,
-  ChevronRight,
   ExternalLink,
   GraduationCap,
   Library,
@@ -140,12 +139,12 @@ function ResourceRow({ resource }: { resource: LearningResourceUnit }) {
           href={resource.url}
           target="_blank"
           rel="noreferrer"
-          aria-label={`Open ${resource.title}`}
+          aria-label={`Open ${resource.title} (opens in a new tab)`}
           title={`Open ${resource.title}`}
         >
           <ExternalLink size={16} />
         </a>
-      ) : <ChevronRight size={16} />}
+      ) : <span className="resource-row__no-link">{isLocked ? 'Locked' : 'No link'}</span>}
     </div>
   )
 }

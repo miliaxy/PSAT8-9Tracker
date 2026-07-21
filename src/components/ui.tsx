@@ -47,12 +47,20 @@ export function StatCard({ label, value, detail, icon: Icon, tone = 'violet' }: 
 }
 
 interface ProgressBarProps {
-  value: number
+  value?: number
   tone?: 'violet' | 'teal' | 'gold' | 'coral'
   label?: string
 }
 
 export function ProgressBar({ value, tone = 'violet', label }: ProgressBarProps) {
+  if (value === undefined) {
+    return (
+      <div className="progress progress--empty" role="img" aria-label={`${label ?? 'Progress'}: no evidence recorded`}>
+        <span className="progress__empty-label">No evidence</span>
+      </div>
+    )
+  }
+
   const boundedValue = Math.max(0, Math.min(100, value))
 
   return (
@@ -63,6 +71,7 @@ export function ProgressBar({ value, tone = 'violet', label }: ProgressBarProps)
       aria-valuenow={boundedValue}
       aria-valuemin={0}
       aria-valuemax={100}
+      aria-valuetext={`${Math.round(boundedValue)} percent`}
     >
       <span className={`progress__fill progress__fill--${tone}`} style={{ width: `${boundedValue}%` }} />
     </div>
