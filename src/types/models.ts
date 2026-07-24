@@ -264,7 +264,7 @@ export type PlanningDraftStatus = 'draft' | 'published' | 'archived'
 
 export interface ParentPlanningInputs {
   availableMinutes: number
-  dayType: Exclude<DayType, 'no-study'>
+  dayType: DayType
   parentNotes: string
   mustInclude: string
 }
@@ -281,7 +281,7 @@ export interface PlanningTaskDraft {
 
 export interface PlanningDraftContent {
   focus: string
-  dayType: Exclude<DayType, 'no-study'>
+  dayType: DayType
   coachNote: string
   rationale: string
   tasks: PlanningTaskDraft[]

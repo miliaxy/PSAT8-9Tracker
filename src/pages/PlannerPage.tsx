@@ -83,7 +83,7 @@ function validateDraft(record: PlanningDraftRecord | null, availableMinutes: num
   if (!record) return 'Create a draft first.'
   if (!record.draft.focus.trim()) return 'Add the day’s focus.'
   if (!record.draft.coachNote.trim()) return 'Add a short note for the student.'
-  if (!record.draft.tasks.length) return 'Add at least one assignment.'
+  if (!record.draft.tasks.length && record.draft.dayType !== 'no-study') return 'Add at least one assignment.'
 
   for (const task of record.draft.tasks) {
     if (!task.title.trim() || !task.description.trim()) return 'Every assignment needs a title and clear instructions.'
@@ -112,6 +112,7 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
         if (!active) return
         setRecord(nextRecord)
         if (nextRecord?.parentInputs) setInputs(nextRecord.parentInputs)
+        else setInputs(initialInputs())
       })
       .catch((nextError: unknown) => {
         if (active) setError(nextError instanceof Error ? nextError.message : 'The planning draft could not be loaded.')
@@ -154,10 +155,11 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
 
   const createRecommended = async () => {
     const recommendation = buildRecommendedPlan(student, skills, drills, practiceTests, targetDate, inputs)
+    const recommendedInputs = { ...inputs, dayType: recommendation.draft.dayType }
     const nextRecord = await run('recommend', () => createRecommendedPlanningDraft(
       student.id,
       targetDate,
-      inputs,
+      recommendedInputs,
       recommendation.draft,
       recommendation.evidenceSummary,
     ))
@@ -253,6 +255,7 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
                 <option value="normal">Normal</option>
                 <option value="long">Long</option>
                 <option value="review">Review</option>
+                {new Date(`${targetDate}T12:00:00`).getDay() === 0 && <option value="no-study">No study</option>}
               </select>
             </label>
           </div>

@@ -453,7 +453,7 @@ export async function createBlankPlanningDraft(
     dayType: inputs.dayType,
     coachNote: '',
     rationale: 'Parent-created draft.',
-    tasks: [{
+    tasks: inputs.dayType === 'no-study' ? [] : [{
       title: '',
       description: '',
       category: 'Learn',

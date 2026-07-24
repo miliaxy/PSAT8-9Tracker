@@ -262,11 +262,11 @@ function makeSkillTasks(
       : 'Hard questions stay locked until your recent Easy/Medium work reaches at least 95%.'
     tasks.push({
       title: `${priority.skillName}: ${mix.questionCount}-question drill`,
-      description: `Complete exactly ${mix.questionCount} questions: ${mix.detail}. Spend ${mix.timer} on the drill; the section average is ${mix.average} per question. Pacing targets: Easy ${mix.easyTarget}, Medium ${mix.mediumTarget}, Hard ${mix.hardTarget}. ${thresholdMessage}`,
+      description: `Complete exactly ${mix.questionCount} questions: ${mix.detail}. Use only non-active questions; keep College Board's Exclude Active Questions filter turned on. Spend ${mix.timer} on the drill; the section average is ${mix.average} per question. Pacing targets: Easy ${mix.easyTarget}, Medium ${mix.mediumTarget}, Hard ${mix.hardTarget}. ${thresholdMessage}`,
       category: 'Drill',
       section: priority.section,
       minutes: Math.ceil(mix.answeringSeconds / 60),
-      resource: 'College Board Question Bank',
+      resource: 'College Board Question Bank · Exclude Active Questions ON',
       skillIds: [priority.skillId],
     })
   }
@@ -283,6 +283,133 @@ function readingTask(minutes: number): PlanningTaskDraft {
     minutes,
     resource: 'Current independent-reading book',
     skillIds: [],
+  }
+}
+
+function dayOfWeek(dateKey: string) {
+  return new Date(`${dateKey}T12:00:00`).getDay()
+}
+
+function weeklyDrillMistakes(drills: Drill[], saturdayDate: string) {
+  const saturday = new Date(`${saturdayDate}T12:00:00`)
+  const monday = new Date(saturday)
+  monday.setDate(monday.getDate() - 5)
+
+  return drills
+    .filter((drill) => {
+      const drillDate = new Date(`${drill.date}T12:00:00`)
+      return drillDate >= monday && drillDate < saturday
+    })
+    .flatMap((drill) => (drill.mistakes ?? []).map((mistake) => ({
+      date: drill.date,
+      skillId: drill.skillId,
+      skillName: drill.skillTopic,
+      questionNumber: mistake.questionNumber,
+      classification: mistake.classification,
+    })))
+    .sort((a, b) => a.date.localeCompare(b.date)
+      || a.skillName.localeCompare(b.skillName)
+      || (a.questionNumber ?? 0) - (b.questionNumber ?? 0))
+}
+
+function saturdayPlan(
+  ranked: RecommendationEvidenceItem[],
+  drills: Drill[],
+  targetDate: string,
+  inputs: ParentPlanningInputs,
+  daysRemaining: number,
+  scoreGap: number,
+  urgency: RecommendationEvidenceSummary['urgency'],
+): RecommendedPlan {
+  const mistakes = weeklyDrillMistakes(drills, targetDate)
+  const readingMinutes = Math.min(20, Math.max(10, inputs.availableMinutes - 10))
+  const labMinutes = Math.max(0, inputs.availableMinutes - readingMinutes)
+  const mistakeList = mistakes.map((mistake) => {
+    const question = mistake.questionNumber ? ` Q${mistake.questionNumber}` : ''
+    return `${mistake.date.slice(5)} ${mistake.skillName}${question} (${mistake.classification})`
+  }).join('; ')
+  const linkedSkillIds = [...new Set(mistakes.map((mistake) => mistake.skillId).filter((skillId): skillId is string => Boolean(skillId)))]
+
+  const tasks: PlanningTaskDraft[] = []
+  if (readingMinutes) tasks.push(readingTask(readingMinutes))
+  if (labMinutes) {
+    tasks.push({
+      title: mistakes.length
+        ? `Mistake Research Lab - all ${mistakes.length} misses from this week`
+        : 'Weekly mastery reflection',
+      description: mistakes.length
+        ? `Research every recorded miss from Monday through Friday: ${mistakeList}. For each question, identify the skill, reconstruct the original thinking, mark the first incorrect decision, research the rule or method, explain why the earlier choice fails and the correct reasoning works, create a new example, and finish "Next time, I will...". This is not a scored redo.`
+        : 'No drill misses were recorded from Monday through Friday. Review the week, name two methods that became more reliable, and write one habit to carry into next week. This is not a scored drill.',
+      category: 'Review',
+      section: null,
+      minutes: labMinutes,
+      resource: mistakes.length
+        ? 'Weekly Mistake Research Lab PDF - parent adds the private workbook link before publishing'
+        : 'PSAT Pathway - Week, Reading & Writing, and Math tabs',
+      skillIds: linkedSkillIds,
+    })
+  }
+
+  return {
+    draft: {
+      focus: mistakes.length
+        ? `Light Saturday: daily reading + research all ${mistakes.length} weekly misses`
+        : 'Light Saturday: daily reading + weekly mastery reflection',
+      dayType: 'light',
+      coachNote: mistakes.length
+        ? 'Today is a research day, not another test. Study every question you missed this week and turn each mistake into a rule you can use next time.'
+        : 'Today is a light consolidation day. Reflect on what became more reliable this week, then recharge.',
+      rationale: mistakes.length
+        ? `Saturday consolidates all ${mistakes.length} mistakes recorded from Monday through Friday. No scored drill is assigned.`
+        : 'Saturday remains a light consolidation day. No scored drill is assigned because no weekly misses were recorded.',
+      tasks,
+    },
+    evidenceSummary: {
+      source: 'rules-v1',
+      generatedAt: new Date().toISOString(),
+      daysRemaining,
+      scoreGap,
+      urgency,
+      rulesApplied: [
+        'Saturday is a light consolidation day.',
+        'Independent reading remains part of Saturday.',
+        'The Mistake Research Lab covers every recorded drill miss from Monday through Friday.',
+        'Mistake research is not scored and does not repeat the week’s drill.',
+        'Sunday is reserved for recovery with no assigned PSAT work.',
+        'The plan never exceeds the parent’s available minutes.',
+      ],
+      priorities: ranked.slice(0, 5),
+    },
+  }
+}
+
+function sundayPlan(
+  ranked: RecommendationEvidenceItem[],
+  daysRemaining: number,
+  scoreGap: number,
+  urgency: RecommendationEvidenceSummary['urgency'],
+): RecommendedPlan {
+  return {
+    draft: {
+      focus: 'Protected Sunday recovery day',
+      dayType: 'no-study',
+      coachNote: 'No PSAT work is assigned today. Rest, recharge, and return fresh for the new week.',
+      rationale: 'Sunday is intentionally protected as a no-study day after the longer weekday sessions and Saturday consolidation.',
+      tasks: [],
+    },
+    evidenceSummary: {
+      source: 'rules-v1',
+      generatedAt: new Date().toISOString(),
+      daysRemaining,
+      scoreGap,
+      urgency,
+      rulesApplied: [
+        'Sunday is a protected recovery day.',
+        'No reading, drill, review, or practice-test task is assigned.',
+        'The next recommendation resumes with the new week’s evidence.',
+      ],
+      priorities: ranked.slice(0, 5),
+    },
   }
 }
 
@@ -330,6 +457,11 @@ export function buildRecommendedPlan(
     : daysRemaining <= 75 || scoreGap >= 150
       ? 'focused'
       : 'steady'
+
+  const weekday = dayOfWeek(targetDate)
+  if (weekday === 0) return sundayPlan(ranked, daysRemaining, scoreGap, urgency)
+  if (weekday === 6) return saturdayPlan(ranked, drills, targetDate, inputs, daysRemaining, scoreGap, urgency)
+
   const readingMinutes = Math.min(20, inputs.availableMinutes)
   const includesReadingRequest = /\bread(?:ing)?\b/i.test(inputs.mustInclude)
   const includeParentTask = Boolean(inputs.mustInclude.trim()) && !includesReadingRequest
@@ -379,6 +511,7 @@ export function buildRecommendedPlan(
         'A skill marked Not yet taught or Learning receives concept work only; drilling waits until the concept is complete.',
         'A previously taught skill that needs reinforcement receives a review task and may then be drilled the same day.',
         'Hard questions stay locked until recent Easy/Medium work reaches at least 95%.',
+        'Daily drills never use active College Board practice-test questions; Exclude Active Questions stays on.',
         'Drill timers use PSAT 8/9 section pacing, with faster Easy/Medium targets that bank time for Hard questions.',
         'Assigned drill minutes include answering time only; afterward, every missed question must be reviewed and its cause recorded.',
         'Daily independent reading is included in every plan.',

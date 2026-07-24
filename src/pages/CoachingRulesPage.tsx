@@ -3,6 +3,7 @@ import {
   BarChart3,
   BookOpen,
   BrainCircuit,
+  CalendarCheck2,
   CheckCircle2,
   Clock3,
   ExternalLink,
@@ -83,6 +84,17 @@ const ruleGroups = [
     ],
   },
   {
+    title: 'Practice tests stay protected',
+    eyebrow: 'Question-bank guardrail',
+    icon: ShieldCheck,
+    tone: 'coral',
+    rules: [
+      'Daily drills use only questions that are not active on a College Board practice test.',
+      'The Exclude Active Questions filter must remain turned on when a drill packet is created.',
+      'Active practice-test questions are reserved for full-test conditions and are never reused in drills.',
+    ],
+  },
+  {
     title: 'Every mistake completes a loop',
     eyebrow: 'Required reflection',
     icon: CheckCircle2,
@@ -94,12 +106,23 @@ const ruleGroups = [
     ],
   },
   {
+    title: 'The week ends with reflection and rest',
+    eyebrow: 'Weekend rhythm',
+    icon: CalendarCheck2,
+    tone: 'blue',
+    rules: [
+      'Saturday is a light consolidation day: independent reading plus a Mistake Research Lab covering every recorded miss from Monday through Friday.',
+      'The Saturday lab is research and reflection, not another scored drill.',
+      'Sunday is a protected no-study day so the student can recover after the longer weekday sessions.',
+    ],
+  },
+  {
     title: 'Reading is a daily foundation',
     eyebrow: 'Standing habit',
     icon: BookOpen,
     tone: 'violet',
     rules: [
-      'Independent reading appears on every study day.',
+      'Independent reading appears on every study day; the protected Sunday recovery day is the exception.',
       'The goal is sustained comprehension, vocabulary growth, and reading stamina.',
       'The reading task stays distinct from PSAT question drills.',
     ],
@@ -175,6 +198,7 @@ export function CoachingRulesPage() {
             <span><ShieldCheck size={15} /> Invent results or fill missing evidence with guesses</span>
             <span><ShieldCheck size={15} /> Hide practice-test and drill evidence inside one opaque score</span>
             <span><ShieldCheck size={15} /> Diagnose, shame, compare, or guarantee an outcome</span>
+            <span><ShieldCheck size={15} /> Use an active College Board practice-test question in a drill</span>
             <span><ShieldCheck size={15} /> Publish homework without parent review and approval</span>
           </div>
         </article>
