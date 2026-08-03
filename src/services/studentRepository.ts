@@ -12,6 +12,7 @@ import type {
   ErrorClassification,
   EvidenceRating,
   LearningResourceUnit,
+  MixedDrillResultInput,
   ParentPlanningInputs,
   PlanningDraftContent,
   PlanningDraftRecord,
@@ -385,6 +386,31 @@ export async function updateDrillResult(studentId: string, drillId: string, resu
 
   if (error) throw new Error(error.message)
   return String(data)
+}
+
+export async function saveMixedDrillResult(studentId: string, result: MixedDrillResultInput) {
+  const { data, error } = await client().rpc('save_mixed_drill_result', {
+    target_student_id: studentId,
+    target_task_id: result.taskId,
+    result: {
+      drillDate: result.date,
+      source: result.source.trim(),
+      timeLimitMinutes: result.timeLimitMinutes,
+      timeSpentMinutes: result.timeSpentMinutes ?? null,
+      notes: result.notes.trim() || null,
+      skillResults: result.skillResults.map((skillResult) => ({
+        questionNumber: skillResult.questionNumber,
+        skillId: skillResult.skillId,
+        difficulty: skillResult.difficulty,
+        correct: skillResult.correct,
+        classification: skillResult.classification ?? null,
+        note: skillResult.note.trim() || null,
+      })),
+    },
+  })
+
+  if (error) throw new Error(error.message)
+  return Array.isArray(data) ? data.map(String) : []
 }
 
 export async function recordPracticeTestResult(studentId: string, result: PracticeTestResultInput) {

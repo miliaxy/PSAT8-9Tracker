@@ -165,7 +165,8 @@ export function TodayPage({ student, tasks, plan, practiceTests, drills, skills,
                 onToggle={onToggleTask}
                 studentId={canRecordResults ? student.id : undefined}
                 skills={skills}
-                result={drills.find((drill) => drill.taskId === task.id) ?? practiceTests.find((test) => test.taskId === task.id)}
+                drillResults={drills.filter((drill) => drill.taskId === task.id)}
+                practiceTestResult={practiceTests.find((test) => test.taskId === task.id)}
                 onResultSaved={canRecordResults ? onResultSaved : undefined}
               />
             ))}

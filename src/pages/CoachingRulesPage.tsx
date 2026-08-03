@@ -72,6 +72,18 @@ const ruleGroups = [
     ],
   },
   {
+    title: 'Daily spirals protect retention',
+    eyebrow: 'Monday–Friday practice habit',
+    icon: RefreshCw,
+    tone: 'violet',
+    rules: [
+      'Every weekday study plan includes a 10-minute mixed-skill drill.',
+      'The questions rotate across previously learned Reading & Writing and Math skills instead of repeating only the day’s focus.',
+      'Needs-review skills appear more often, while older strong skills return through spaced practice.',
+      'Each question is recorded against its own skill so mixed practice does not distort the evidence.',
+    ],
+  },
+  {
     title: 'Pacing is based on the test',
     eyebrow: 'Question counts and time',
     icon: Clock3,

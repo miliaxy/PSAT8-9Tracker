@@ -174,7 +174,8 @@ export function WeekPage({ plan, completedTaskIds, onToggleTask, studentId, skil
                           compact
                           studentId={studentId}
                           skills={skills}
-                          result={drills.find((drill) => drill.taskId === task.id) ?? practiceTests.find((test) => test.taskId === task.id)}
+                          drillResults={drills.filter((drill) => drill.taskId === task.id)}
+                          practiceTestResult={practiceTests.find((test) => test.taskId === task.id)}
                           onResultSaved={onResultSaved}
                         />
                       ))

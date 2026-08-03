@@ -82,6 +82,7 @@ export function SkillPage({ section, allSkills, drills, tests, targetScore }: Sk
   const attempted = sectionDrills.reduce((sum, drill) => sum + drill.attempted, 0)
   const correct = sectionDrills.reduce((sum, drill) => sum + drill.correct, 0)
   const averageAccuracy = attempted ? Math.round((correct / attempted) * 100) : undefined
+  const practiceSessions = new Set(sectionDrills.map((drill) => drill.taskId ?? drill.id)).size
   const accuracyTarget = mixedAccuracyTarget(targetScore)
   const strongSkills = sectionSkills.filter((skill) => ['Strong', 'Mastered'].includes(skill.combinedStatus)).length
   const improvingSkills = sectionSkills.filter((skill) => skill.trend === 'up').length
@@ -118,7 +119,7 @@ export function SkillPage({ section, allSkills, drills, tests, targetScore }: Sk
         <StatCard label="Recorded drill accuracy" value={averageAccuracy === undefined ? '—' : `${averageAccuracy}%`} detail={attempted ? `${correct} of ${attempted} correct` : 'No drill evidence yet'} icon={Target} tone={section === 'Math' ? 'teal' : 'violet'} />
         <StatCard label="Strong skills" value={`${strongSkills} / ${sectionSkills.length}`} detail="Strong or mastered" icon={CheckCircle2} tone="teal" />
         <StatCard label="Trending up" value={improvingSkills} detail="Skills gaining momentum" icon={Activity} tone="gold" />
-        <StatCard label="Practice sessions" value={sectionDrills.length} detail="All recorded drills" icon={Clock3} tone="blue" />
+        <StatCard label="Practice sessions" value={practiceSessions} detail="All recorded drills" icon={Clock3} tone="blue" />
       </section>
 
       <section className="skill-overview-grid">

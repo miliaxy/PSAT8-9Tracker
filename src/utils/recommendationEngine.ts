@@ -160,57 +160,6 @@ function isReadyForHard(skill: Skill, drills: Drill[], targetDate: string) {
   return attempted >= 20 && (correct / attempted) * 100 >= 95
 }
 
-const pacingSeconds = {
-  'Reading & Writing': { average: 71, easy: 55, medium: 70, hard: 90 },
-  Math: { average: 95, easy: 70, medium: 90, hard: 125 },
-} as const
-
-function formatDuration(totalSeconds: number) {
-  const minutes = Math.floor(totalSeconds / 60)
-  const seconds = totalSeconds % 60
-  return seconds ? `${minutes}:${String(seconds).padStart(2, '0')}` : `${minutes}:00`
-}
-
-function drillQuestionMix(minutes: number, section: Skill['section'], hardReady: boolean) {
-  const pacing = pacingSeconds[section]
-  let questionCount = minutes >= 20 ? 10 : minutes >= 15 ? 8 : 6
-  const maxAnsweringSeconds = Math.max(60, minutes * 60)
-
-  const buildMix = (count: number) => {
-    if (hardReady) {
-      const medium = Math.ceil(count / 2)
-      const hard = count - medium
-      return {
-        detail: `${medium} Medium and ${hard} Hard`,
-        answeringSeconds: medium * pacing.medium + hard * pacing.hard,
-      }
-    }
-    const easy = Math.floor(count / 2)
-    const medium = count - easy
-    return {
-      detail: `${easy} Easy and ${medium} Medium`,
-      answeringSeconds: easy * pacing.easy + medium * pacing.medium,
-    }
-  }
-
-  let mix = buildMix(questionCount)
-  while (questionCount > 4 && mix.answeringSeconds > maxAnsweringSeconds) {
-    questionCount -= 2
-    mix = buildMix(questionCount)
-  }
-
-  return {
-    questionCount,
-    detail: mix.detail,
-    answeringSeconds: mix.answeringSeconds,
-    timer: formatDuration(mix.answeringSeconds),
-    average: formatDuration(pacing.average),
-    easyTarget: formatDuration(pacing.easy),
-    mediumTarget: formatDuration(pacing.medium),
-    hardTarget: formatDuration(pacing.hard),
-  }
-}
-
 function learningTopic(skill: Skill) {
   const continuation = skill.nextStep.match(/^(?:finish|continue)\s+(.+?)(?:, then|\. |\.$)/i)?.[1]
   if (!continuation) return skill.name
@@ -229,49 +178,100 @@ function makeSkillTasks(
   const needsReview = mistakes.some((mistake) => ['Not Yet Taught', 'Concept Gap'].includes(mistake.classification))
     || skill.conceptState === 'needs_review'
     || skill.drillEvidence.rating === 'Needs work'
-  const preparationMinutes = conceptInProgress
-    ? minutes
-    : needsReview && minutes >= 20
-      ? (minutes >= 30 ? 15 : 10)
-      : needsReview
-        ? minutes
-        : 0
-  const drillMinutes = conceptInProgress ? 0 : minutes - preparationMinutes
   const tasks: PlanningTaskDraft[] = []
 
-  if (preparationMinutes) {
+  if (minutes) {
     const topic = conceptInProgress ? learningTopic(skill) : priority.skillName
     tasks.push({
-      title: conceptInProgress ? `${topic}: learn the concept` : `${topic}: review the method`,
+      title: conceptInProgress
+        ? `${topic}: learn the concept`
+        : needsReview
+          ? `${topic}: review the method`
+          : `${topic}: spaced review`,
       description: conceptInProgress
         ? `${skill.nextStep || `Learn the core method for ${priority.skillName}.`} Explain the method aloud and write one rule or takeaway. Drilling waits until the concept is complete.`
-        : `${skill.nextStep || `Review one worked example for ${priority.skillName}.`} Revisit one worked example, explain the method aloud, and write one rule or takeaway. The drill is a separate assignment.`,
+        : `${skill.nextStep || `Review one worked example for ${priority.skillName}.`} Revisit the method, explain it aloud, and write one rule or takeaway. Today’s mixed spiral is a separate assignment and may include this skill only if the concept has already been learned.`,
       category: conceptInProgress ? 'Learn' : 'Review',
       section: priority.section,
-      minutes: preparationMinutes,
+      minutes,
       resource: skillLearningResources[skill.id] ?? 'Khan Academy or current prep resource',
       skillIds: [priority.skillId],
     })
   }
 
-  if (drillMinutes) {
-    const hardReady = isReadyForHard(skill, drills, targetDate)
-    const mix = drillQuestionMix(drillMinutes, priority.section, hardReady)
-    const thresholdMessage = hardReady
-      ? 'You earned the move to Hard work by reaching at least 95% on recent Easy/Medium practice.'
-      : 'Hard questions stay locked until your recent Easy/Medium work reaches at least 95%.'
-    tasks.push({
-      title: `${priority.skillName}: ${mix.questionCount}-question drill`,
-      description: `Complete exactly ${mix.questionCount} questions: ${mix.detail}. Use only non-active questions; keep College Board's Exclude Active Questions filter turned on. Spend ${mix.timer} on the drill; the section average is ${mix.average} per question. Pacing targets: Easy ${mix.easyTarget}, Medium ${mix.mediumTarget}, Hard ${mix.hardTarget}. ${thresholdMessage}`,
-      category: 'Drill',
-      section: priority.section,
-      minutes: Math.ceil(mix.answeringSeconds / 60),
-      resource: 'College Board Question Bank · Exclude Active Questions ON',
-      skillIds: [priority.skillId],
-    })
-  }
-
   return tasks
+}
+
+function dateRotation(dateKey: string) {
+  return dateKey.split('-').reduce((total, part) => total + Number(part), 0)
+}
+
+function rotatedPriorities(items: RecommendationEvidenceItem[], count: number, targetDate: string) {
+  if (items.length <= count) return items
+  const anchorCount = Math.min(2, count)
+  const selected = items.slice(0, anchorCount)
+  const rotating = items.slice(anchorCount)
+  const offset = rotating.length ? dateRotation(targetDate) % rotating.length : 0
+
+  for (let index = 0; selected.length < count && index < rotating.length; index += 1) {
+    selected.push(rotating[(offset + index) % rotating.length])
+  }
+  return selected
+}
+
+function mixedSpiralTask(
+  ranked: RecommendationEvidenceItem[],
+  skills: Skill[],
+  drills: Drill[],
+  targetDate: string,
+): PlanningTaskDraft | null {
+  const byId = new Map(skills.map((skill) => [skill.id, skill]))
+  const eligible = ranked.filter((priority) => {
+    const skill = byId.get(priority.skillId)
+    return skill
+      && ['needs_review', 'strong', 'mastered'].includes(skill.conceptState)
+      && Boolean(skill.lastPracticed)
+  })
+  const readingWriting = rotatedPriorities(
+    eligible.filter((priority) => priority.section === 'Reading & Writing'),
+    4,
+    targetDate,
+  )
+  const math = rotatedPriorities(
+    eligible.filter((priority) => priority.section === 'Math'),
+    3,
+    targetDate,
+  )
+  const selected = [...readingWriting, ...math]
+
+  for (const priority of eligible) {
+    if (selected.length >= 7) break
+    if (!selected.some((candidate) => candidate.skillId === priority.skillId)) selected.push(priority)
+  }
+  if (selected.length < 2) return null
+
+  const chosen = selected.slice(0, 7)
+  const allHardReady = chosen.every((priority) => {
+    const skill = byId.get(priority.skillId)
+    return skill ? isReadyForHard(skill, drills, targetDate) : false
+  })
+  const questionCount = chosen.length
+  const firstDifficultyCount = Math.floor(questionCount / 2)
+  const secondDifficultyCount = questionCount - firstDifficultyCount
+  const difficultyMix = allHardReady
+    ? `${firstDifficultyCount} Medium and ${secondDifficultyCount} Hard`
+    : `${firstDifficultyCount} Easy and ${secondDifficultyCount} Medium`
+  const skillsList = chosen.map((priority) => priority.skillName).join('; ')
+
+  return {
+    title: `Daily mixed-skill spiral: ${questionCount} questions`,
+    description: `Complete one previously unused official PSAT 8/9 question for each linked skill: ${skillsList}. Use exactly ${difficultyMix} questions and one 10-minute timer for the full set. Keep College Board's Exclude Active Questions filter turned on. This drill rotates previously learned material; it does not include a concept that is still being learned. Review every miss afterward and record the result against the skill for that question. ${allHardReady ? 'Every linked skill has earned Hard work through at least 95% recent Easy/Medium accuracy.' : 'Hard questions remain locked until every linked skill reaches at least 95% on recent Easy/Medium work.'}`,
+    category: 'Drill',
+    section: null,
+    minutes: 10,
+    resource: 'College Board Educator Question Bank · PSAT 8/9 · Exclude Active Questions ON · previously unused questions only',
+    skillIds: chosen.map((priority) => priority.skillId),
+  }
 }
 
 function readingTask(minutes: number): PlanningTaskDraft {
@@ -462,11 +462,13 @@ export function buildRecommendedPlan(
   if (weekday === 0) return sundayPlan(ranked, daysRemaining, scoreGap, urgency)
   if (weekday === 6) return saturdayPlan(ranked, drills, targetDate, inputs, daysRemaining, scoreGap, urgency)
 
-  const readingMinutes = Math.min(20, inputs.availableMinutes)
+  const spiralTask = mixedSpiralTask(ranked, skills, drills, targetDate)
+  const spiralMinutes = spiralTask && inputs.availableMinutes >= 15 ? spiralTask.minutes : 0
+  const readingMinutes = Math.min(20, Math.max(0, inputs.availableMinutes - spiralMinutes))
   const includesReadingRequest = /\bread(?:ing)?\b/i.test(inputs.mustInclude)
   const includeParentTask = Boolean(inputs.mustInclude.trim()) && !includesReadingRequest
-  const parentTaskMinutes = includeParentTask && inputs.availableMinutes - readingMinutes >= 25 ? 15 : 0
-  const coachingMinutes = Math.max(0, inputs.availableMinutes - readingMinutes - parentTaskMinutes)
+  const parentTaskMinutes = includeParentTask && inputs.availableMinutes - readingMinutes - spiralMinutes >= 25 ? 15 : 0
+  const coachingMinutes = Math.max(0, inputs.availableMinutes - readingMinutes - spiralMinutes - parentTaskMinutes)
   const capacityTaskCount = Math.floor(coachingMinutes / 20)
   const desiredTaskCount = coachingMinutes >= 60 || (coachingMinutes >= 40 && urgency !== 'steady')
     ? 3
@@ -479,17 +481,20 @@ export function buildRecommendedPlan(
   const priorities = choosePriorities(ranked, priorityCount)
   const minuteSplit = priorities.length ? splitMinutes(coachingMinutes, priorities.length) : []
   const byId = new Map(skills.map((skill) => [skill.id, skill]))
-  const tasks = priorities.flatMap((priority, index) => makeSkillTasks(priority, byId.get(priority.skillId)!, drills, targetDate, minuteSplit[index]))
+  const priorityTasks = priorities.flatMap((priority, index) => makeSkillTasks(priority, byId.get(priority.skillId)!, drills, targetDate, minuteSplit[index]))
+  const tasks: PlanningTaskDraft[] = []
 
-  if (includeParentTask && parentTaskMinutes) tasks.push(parentPriorityTask(inputs.mustInclude.trim(), parentTaskMinutes))
   if (readingMinutes) tasks.push(readingTask(readingMinutes))
+  if (spiralTask && spiralMinutes) tasks.push(spiralTask)
+  tasks.push(...priorityTasks)
+  if (includeParentTask && parentTaskMinutes) tasks.push(parentPriorityTask(inputs.mustInclude.trim(), parentTaskMinutes))
 
   const focusNames = priorities.map((priority) => priority.skillName)
   const rationaleParts = priorities.map((priority) => `${priority.skillName}: ${priority.reasons.slice(0, 3).join('; ')}`)
 
   return {
     draft: {
-      focus: focusNames.length ? `${focusNames.join(' + ')} + Daily reading` : 'Daily independent reading',
+      focus: focusNames.length ? `${focusNames.join(' + ')} + Mixed spiral + Daily reading` : 'Mixed spiral + Daily independent reading',
       dayType: inputs.dayType,
       coachNote: `Accuracy before difficulty: reach at least 95% on Easy/Medium work before moving to Hard questions. Easy and Medium questions should bank time for harder work. Drill time means answering time only. Afterward, review every missed question and record what caused the mistake so you can avoid making it again.`,
       rationale: `${daysRemaining} days remain until the test. The current score is ${student.currentScore}, the target is ${student.targetScore}, and the gap is ${scoreGap} points. The rules selected ${rationaleParts.join(' | ')}.`,
@@ -510,6 +515,9 @@ export function buildRecommendedPlan(
         'Learning a concept and drilling it are separate assignments.',
         'A skill marked Not yet taught or Learning receives concept work only; drilling waits until the concept is complete.',
         'A previously taught skill that needs reinforcement receives a review task and may then be drilled the same day.',
+        'Every Monday-through-Friday study plan includes a 10-minute mixed spiral drawn from previously learned skills.',
+        'The mixed spiral rotates skills across Reading & Writing and Math instead of repeating only the day’s focus skill.',
+        'Mixed-drill results are recorded by skill so the evidence remains accurate.',
         'Hard questions stay locked until recent Easy/Medium work reaches at least 95%.',
         'Daily drills never use active College Board practice-test questions; Exclude Active Questions stays on.',
         'Drill timers use PSAT 8/9 section pacing, with faster Easy/Medium targets that bank time for Hard questions.',

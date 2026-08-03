@@ -180,6 +180,25 @@ export interface DrillResultInput {
   mistakes: DrillResultMistakeInput[]
 }
 
+export interface MixedDrillSkillResultInput {
+  questionNumber: number
+  skillId: string
+  difficulty: Difficulty
+  correct: boolean
+  classification?: ErrorClassification
+  note: string
+}
+
+export interface MixedDrillResultInput {
+  taskId: string
+  date: string
+  source: string
+  timeLimitMinutes: number
+  timeSpentMinutes?: number
+  notes: string
+  skillResults: MixedDrillSkillResultInput[]
+}
+
 export interface PracticeTestResultMistakeInput {
   questionNumber: number
   module?: 1 | 2
