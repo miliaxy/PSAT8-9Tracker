@@ -10,6 +10,7 @@ import type {
   Skill,
   Student,
 } from '../types/models'
+import { curriculumBySkillId } from '../data/curriculumMap'
 import { buildScoreRoadmap } from './roadmapEngine'
 
 export interface RecommendedPlan {
@@ -42,10 +43,6 @@ function connectRoadmap(plan: RecommendedPlan, roadmap: ScoreRoadmap): Recommend
       },
     },
   }
-}
-
-const skillLearningResources: Partial<Record<string, string>> = {
-  'rw-cross-text': 'Lesson: https://www.khanacademy.org/test-prep/sat-reading-and-writing/x0d47bcec73eb6c4b%3Amedium/x0d47bcec73eb6c4b%3Across-text-connections-2/a/cross-text-connections-lesson | Worked example: https://www.khanacademy.org/test-prep/sat-reading-and-writing/x0d47bcec73eb6c4b%3Amedium-craft-and-structure/x0d47bcec73eb6c4b%3Across-text-connections-2/v/cross-text-connections-video',
 }
 
 const statusScore: Record<Skill['combinedStatus'], number> = {
@@ -211,6 +208,8 @@ function makeSkillTasks(
 
   if (minutes) {
     const topic = conceptInProgress ? learningTopic(skill) : priority.skillName
+    const curriculum = curriculumBySkillId.get(skill.id)
+    const requiredConcepts = curriculum?.requiredConcepts.join('; ')
     tasks.push({
       title: conceptInProgress
         ? `${topic}: learn the concept`
@@ -218,12 +217,14 @@ function makeSkillTasks(
           ? `${topic}: review the method`
           : `${topic}: spaced review`,
       description: conceptInProgress
-        ? `${skill.nextStep || `Learn the core method for ${priority.skillName}.`} Explain the method aloud and write one rule or takeaway. Drilling waits until the concept is complete.`
+        ? `${skill.nextStep || `Learn the core method for ${priority.skillName}.`} Required PSAT concepts: ${requiredConcepts ?? priority.skillName}. Explain the method aloud and write one rule or takeaway. Drilling waits until the concept is complete.`
         : `${skill.nextStep || `Review one worked example for ${priority.skillName}.`} Revisit the method, explain it aloud, and write one rule or takeaway. Today’s mixed spiral is a separate assignment and may include this skill only if the concept has already been learned.`,
       category: conceptInProgress ? 'Learn' : 'Review',
       section: priority.section,
       minutes,
-      resource: skillLearningResources[skill.id] ?? 'Khan Academy or current prep resource',
+      resource: curriculum
+        ? `${curriculum.resource.course} · ${curriculum.resource.unit} · ${curriculum.resource.url}`
+        : 'No verified learning resource mapped yet',
       skillIds: [priority.skillId],
     })
   }
