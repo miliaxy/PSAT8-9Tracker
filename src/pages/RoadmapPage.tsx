@@ -10,10 +10,11 @@ import {
   Gauge,
   RefreshCw,
   Route,
+  ShieldCheck,
   Target,
 } from 'lucide-react'
 import { PageHeader } from '../components/ui'
-import type { Drill, PracticeTest, Skill, Student } from '../types/models'
+import type { Drill, PracticeTest, ProgramPlan, ProgramPlanBlockKind, Skill, Student } from '../types/models'
 import { formatDate } from '../utils/format'
 import { buildScoreRoadmap, localDateKey } from '../utils/roadmapEngine'
 
@@ -22,15 +23,37 @@ interface RoadmapPageProps {
   skills: Skill[]
   drills: Drill[]
   practiceTests: PracticeTest[]
+  programPlan?: ProgramPlan
+}
+
+const programKindLabel: Record<ProgramPlanBlockKind, string> = {
+  learning: 'Learn',
+  verification: 'Verify',
+  review: 'Review',
+  'practice-test': 'Full test',
+  analysis: 'Analyze',
+  'catch-up': 'Catch up',
+  mastery: 'Mastery',
+  integration: 'Timed integration',
+  readiness: 'Final readiness',
+  rest: 'Rest',
+  'test-day': 'Test day',
+}
+
+function programDateRange(startDate: string, endDate: string) {
+  return startDate === endDate ? formatDate(startDate, { weekday: 'short', month: 'short', day: 'numeric' }) : `${formatDate(startDate)}–${formatDate(endDate)}`
 }
 
 function percent(value: number, total: number) {
   return total ? Math.round((value / total) * 100) : 0
 }
 
-export function RoadmapPage({ student, skills, drills, practiceTests }: RoadmapPageProps) {
+export function RoadmapPage({ student, skills, drills, practiceTests, programPlan }: RoadmapPageProps) {
   const roadmap = buildScoreRoadmap(student, skills, drills, practiceTests, localDateKey())
   const activeIndex = roadmap.milestones.findIndex((milestone) => milestone.id === roadmap.activeMilestone.id)
+  const conceptsRemaining = skills.filter((skill) => ['not_yet_taught', 'learning'].includes(skill.conceptState)).length
+  const currentDate = localDateKey()
+  const activeProgramBlock = programPlan?.blocks.find((block) => block.startDate <= currentDate && block.endDate >= currentDate)
 
   return (
     <>
@@ -80,6 +103,54 @@ export function RoadmapPage({ student, skills, drills, practiceTests }: RoadmapP
           <small>The final 14 days are reserved for readiness, not broad new learning</small>
         </article>
       </section>
+
+      {programPlan && (
+        <section className="panel program-plan" aria-label="Published program plan">
+          <div className="panel__header program-plan__header">
+            <div><span className="eyebrow">Published program plan</span><h2>{programPlan.title}</h2></div>
+            <span className="program-plan__private"><ShieldCheck size={14} /> Private student plan</span>
+          </div>
+          <div className="program-plan__deadline">
+            <div>
+              <span>Concept-learning deadline</span>
+              <strong>{formatDate(programPlan.conceptDeadline, { month: 'long', day: 'numeric' })}</strong>
+              <small>{conceptsRemaining} concepts currently remain unlearned or in progress</small>
+            </div>
+            <div>
+              <span>After the deadline</span>
+              <strong>Mastery, timing, and transfer</strong>
+              <small>No broad new units after school begins unless new test evidence reveals a genuine gap.</small>
+            </div>
+            <a href="#curriculum"><BookOpenCheck size={15} /> Open curriculum map</a>
+          </div>
+          <p className="program-plan__principle">{programPlan.principle}</p>
+          {activeProgramBlock && (
+            <div className="program-plan__now">
+              <Target size={17} />
+              <div><span>Current allocation</span><strong>{activeProgramBlock.title}</strong></div>
+              <small>{programDateRange(activeProgramBlock.startDate, activeProgramBlock.endDate)}</small>
+            </div>
+          )}
+          <div className="program-plan__list">
+            {programPlan.blocks.map((block) => (
+              <article className={`program-block program-block--${block.kind}`} key={block.id}>
+                <div className="program-block__date">
+                  <span>{programDateRange(block.startDate, block.endDate)}</span>
+                  <strong>{programKindLabel[block.kind]}</strong>
+                </div>
+                <div className="program-block__body">
+                  <h3>{block.title}</h3>
+                  <div className="program-block__focus">
+                    {block.mathFocus && <p><strong>Math</strong><span>{block.mathFocus}</span></p>}
+                    {block.readingWritingFocus && <p><strong>R&amp;W</strong><span>{block.readingWritingFocus}</span></p>}
+                  </div>
+                  {block.note && <small>{block.note}</small>}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="panel roadmap-now">
         <div className="panel__header">

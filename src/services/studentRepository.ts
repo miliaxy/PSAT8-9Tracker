@@ -16,6 +16,7 @@ import type {
   ParentPlanningInputs,
   PlanningDraftContent,
   PlanningDraftRecord,
+  ProgramPlan,
   PracticeTestResultInput,
   RecommendationEvidenceSummary,
   PracticeTest,
@@ -104,6 +105,7 @@ export async function loadStudentDashboard(student: Student): Promise<DashboardB
     plansResult,
     booksResult,
     resourcesResult,
+    programPlanResult,
   ] = await Promise.all([
     db.from('skill_catalog').select('*').eq('is_active', true).order('sort_order'),
     db.from('student_skill_progress').select('*').eq('student_id', studentId),
@@ -115,6 +117,7 @@ export async function loadStudentDashboard(student: Student): Promise<DashboardB
     db.from('study_plans').select('*').eq('student_id', studentId).order('week_of', { ascending: false }).limit(1),
     db.from('books').select('*').eq('student_id', studentId).order('created_at'),
     db.from('learning_resource_progress').select('*').eq('student_id', studentId).order('provider').order('sequence'),
+    db.from('program_plans').select('*').eq('student_id', studentId).eq('status', 'published').order('published_at', { ascending: false }).limit(1).maybeSingle(),
   ])
 
   const firstError = [
@@ -128,6 +131,7 @@ export async function loadStudentDashboard(student: Student): Promise<DashboardB
     plansResult.error,
     booksResult.error,
     resourcesResult.error,
+    programPlanResult.error,
   ].find(Boolean)
   if (firstError) throw new Error(firstError.message)
 
@@ -317,10 +321,30 @@ export async function loadStudentDashboard(student: Student): Promise<DashboardB
     note: String(resource.note),
   }))
 
+  const programPlanRow = programPlanResult.data as Row | null
+  const planPayload = programPlanRow?.plan && typeof programPlanRow.plan === 'object'
+    ? programPlanRow.plan as { principle?: unknown; blocks?: unknown }
+    : null
+  const programPlan: ProgramPlan | undefined = programPlanRow && planPayload
+    ? {
+        id: String(programPlanRow.id),
+        studentId: String(programPlanRow.student_id),
+        title: String(programPlanRow.title),
+        startDate: String(programPlanRow.start_date),
+        endDate: String(programPlanRow.end_date),
+        conceptDeadline: String(programPlanRow.concept_deadline),
+        status: value<ProgramPlan['status']>(programPlanRow, 'status'),
+        principle: typeof planPayload.principle === 'string' ? planPayload.principle : '',
+        blocks: Array.isArray(planPayload.blocks) ? planPayload.blocks as ProgramPlan['blocks'] : [],
+        publishedAt: programPlanRow.published_at ? String(programPlanRow.published_at) : undefined,
+        updatedAt: String(programPlanRow.updated_at),
+      }
+    : undefined
+
   const todayKey = localDateKey()
   const todayTasks = studyPlan.days.find((day) => day.date === todayKey)?.tasks ?? []
 
-  return { student, todayTasks, studyPlan, practiceTests, drills, skills, books, learningResources }
+  return { student, todayTasks, studyPlan, practiceTests, drills, skills, books, learningResources, programPlan }
 }
 
 export async function setTaskCompletion(studentId: string, taskId: string, completed: boolean) {

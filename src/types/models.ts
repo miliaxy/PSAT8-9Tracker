@@ -307,6 +307,45 @@ export interface ScoreRoadmap {
   evidenceNote: string
 }
 
+export type ProgramPlanBlockKind =
+  | 'learning'
+  | 'verification'
+  | 'review'
+  | 'practice-test'
+  | 'analysis'
+  | 'catch-up'
+  | 'mastery'
+  | 'integration'
+  | 'readiness'
+  | 'rest'
+  | 'test-day'
+
+export interface ProgramPlanBlock {
+  id: string
+  startDate: string
+  endDate: string
+  kind: ProgramPlanBlockKind
+  title: string
+  mathFocus?: string
+  readingWritingFocus?: string
+  note?: string
+  skillIds: string[]
+}
+
+export interface ProgramPlan {
+  id: string
+  studentId: string
+  title: string
+  startDate: string
+  endDate: string
+  conceptDeadline: string
+  status: 'draft' | 'published' | 'archived'
+  principle: string
+  blocks: ProgramPlanBlock[]
+  publishedAt?: string
+  updatedAt: string
+}
+
 export interface RoadmapLink {
   phaseId: RoadmapPhaseId
   phaseLabel: string
@@ -423,4 +462,5 @@ export interface DashboardBundle {
   skills: Skill[]
   books: Book[]
   learningResources: LearningResourceUnit[]
+  programPlan?: ProgramPlan
 }
