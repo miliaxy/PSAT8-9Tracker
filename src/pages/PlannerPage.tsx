@@ -106,7 +106,6 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
   const [working, setWorking] = useState<'recommend' | 'blank' | 'save' | 'publish' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const [reviewed, setReviewed] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -145,7 +144,6 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
     setLoading(true)
     setError(null)
     setMessage(null)
-    setReviewed(false)
     setRecord(null)
     setTargetDate(nextDate)
   }
@@ -177,20 +175,17 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
     if (!nextRecord) return
     setRecord(nextRecord)
     setInputs(nextRecord.parentInputs)
-    setReviewed(false)
-    setMessage('Recommended draft created from the current evidence. Review and edit every assignment before publishing.')
+    setMessage('Recommended draft created from the current evidence. Edit anything you want, then publish with one click.')
   }
 
   const createBlank = async () => {
     const nextRecord = await run('blank', () => createBlankPlanningDraft(student.id, targetDate, inputs))
     if (!nextRecord) return
     setRecord(nextRecord)
-    setReviewed(false)
-    setMessage('Blank draft ready. Fill in the assignments, save, and review before publishing.')
+    setMessage('Blank draft ready. Fill in the assignments, then publish with one click when it is ready.')
   }
 
   const updateContent = (updates: Partial<PlanningDraftContent>) => {
-    setReviewed(false)
     setRecord((current) => current ? {
       ...current,
       parentInputs: inputs,
@@ -232,7 +227,7 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
   }
 
   const publish = async () => {
-    if (!record || published || validationError || !reviewed) return
+    if (!record || published || validationError) return
     const recordToSave = {
       ...record,
       parentInputs: inputs,
@@ -266,15 +261,15 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
       <PageHeader
         eyebrow="Parent workspace"
         title="Daily Planning Room"
-        description={`Create ${student.firstName}’s next homework plan from recent evidence, then review it before anything becomes visible.`}
+        description={`Create ${student.firstName}’s next homework plan from recent evidence, edit it if needed, then publish it.`}
         action={<span className="planner-private-badge"><ShieldCheck size={15} /> Parent only</span>}
       />
 
       <section className="planner-safety-strip">
         <ShieldCheck size={18} />
         <div>
-          <strong>Draft first, publish second</strong>
-          <p>The rules can recommend homework, but only your reviewed version reaches the student dashboard.</p>
+          <strong>Draft first, one-click publish second</strong>
+          <p>Nothing reaches the student dashboard until you select Publish homework.</p>
         </div>
       </section>
 
@@ -341,7 +336,7 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
         <section className="panel planner-editor">
           <div className="panel__header">
             <div>
-              <span className="eyebrow">Step 2 · Review</span>
+              <span className="eyebrow">Step 2 · Edit or publish</span>
               <h2>{published ? 'Published homework' : 'Editable homework draft'}</h2>
             </div>
             {record && <span className={`draft-status draft-status--${record.status}`}>{record.status}</span>}
@@ -434,10 +429,10 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
                     </div>
                   )}
                   {validationError && !roadmapIssues.length && <p className="planner-validation">{validationError}</p>}
-                  <label className="planner-review-check"><input type="checkbox" checked={reviewed} disabled={Boolean(validationError)} onChange={(event) => setReviewed(event.target.checked)} /><span><strong>I reviewed every assignment.</strong> The plan is appropriate and ready for {student.firstName}.</span></label>
+                  {!validationError && <p className="planner-publish-note"><strong>Ready to publish.</strong> Selecting Publish homework is the parent approval step.</p>}
                   <div>
                     <button className="button button--secondary" disabled={Boolean(working)} onClick={() => void save()}>{working === 'save' ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />} Save draft</button>
-                    <button className="button button--primary" disabled={Boolean(working) || Boolean(validationError) || !reviewed} onClick={() => void publish()}>{working === 'publish' ? <LoaderCircle className="spin" size={16} /> : <Send size={16} />} Publish homework</button>
+                    <button className="button button--primary" disabled={Boolean(working) || Boolean(validationError)} onClick={() => void publish()}>{working === 'publish' ? <LoaderCircle className="spin" size={16} /> : <Send size={16} />} Publish homework</button>
                   </div>
                 </div>
               )}

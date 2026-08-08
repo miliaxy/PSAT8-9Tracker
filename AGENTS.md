@@ -13,6 +13,6 @@ For private daily planning, the governing workflow is:
 7. Give every drill an exact question count, exact difficulty mix, PSAT 8/9 solving time, direct resource or packet link, and required mistake review. Keep Hard locked until at least 95% recent Easy/Medium accuracy across meaningful evidence.
 8. Include independent reading on study days and a short mixed spiral of previously learned skills on normal weekdays. Respect the current family schedule; weekend patterns are defaults, not reasons to ignore a parent's explicit change.
 9. State the evidence-based reason, success criterion, and next recalculation signal for each plan. Say when evidence is missing.
-10. Save private plans as drafts only. A parent reviews, edits, and explicitly publishes them. Never publish automatically.
+10. Save private plans as drafts first. A parent explicitly publishes with the Publish homework button; that click is the approval step and no separate review checkbox is required. Never publish automatically when a draft is created.
 
 Before finishing a roadmap or plan change, run the project type check, lint, and GitHub Pages build. Preserve unrelated worktree changes.

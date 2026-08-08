@@ -151,14 +151,14 @@ const ruleGroups = [
     ],
   },
   {
-    title: 'A parent approves the plan',
+    title: 'A parent controls publication',
     eyebrow: 'Human control',
     icon: FileCheck2,
     tone: 'blue',
     rules: [
       'Recommendations begin as drafts, never as automatically published homework.',
       'A parent can edit timing, resources, task wording, and priorities.',
-      'Only an explicitly reviewed plan is published to the student.',
+      'Selecting Publish homework is the parent approval step; no separate review checkbox is required.',
     ],
   },
 ]
@@ -222,7 +222,7 @@ export function CoachingRulesPage() {
             <span><ShieldCheck size={15} /> Hide practice-test and drill evidence inside one opaque score</span>
             <span><ShieldCheck size={15} /> Diagnose, shame, compare, or guarantee an outcome</span>
             <span><ShieldCheck size={15} /> Use an active College Board practice-test question in a drill</span>
-            <span><ShieldCheck size={15} /> Publish homework without parent review and approval</span>
+            <span><ShieldCheck size={15} /> Publish homework automatically when a draft is created</span>
           </div>
         </article>
 
