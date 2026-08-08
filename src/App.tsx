@@ -168,7 +168,7 @@ function Dashboard({ bundle, demoMode, onDataChanged }: { bundle: DashboardBundl
           />
         )
       case 'roadmap':
-        return <RoadmapPage student={bundle.student} skills={bundle.skills} drills={bundle.drills} practiceTests={bundle.practiceTests} programPlan={bundle.programPlan} />
+        return <RoadmapPage student={bundle.student} skills={bundle.skills} drills={bundle.drills} practiceTests={bundle.practiceTests} learningResources={bundle.learningResources} programPlan={bundle.programPlan} />
       case 'curriculum':
         return <CurriculumPage skills={bundle.skills} resources={bundle.learningResources} />
       case 'week':

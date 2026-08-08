@@ -14,7 +14,9 @@ import {
   Target,
 } from 'lucide-react'
 import { PageHeader } from '../components/ui'
-import type { Drill, PracticeTest, ProgramPlan, ProgramPlanBlockKind, Skill, Student } from '../types/models'
+import { curriculumMap } from '../data/curriculumMap'
+import type { Drill, LearningResourceUnit, PracticeTest, ProgramPlan, ProgramPlanBlockKind, Skill, Student } from '../types/models'
+import { assessCurriculumProgress } from '../utils/curriculumProgress'
 import { formatDate } from '../utils/format'
 import { buildScoreRoadmap, localDateKey } from '../utils/roadmapEngine'
 
@@ -23,6 +25,7 @@ interface RoadmapPageProps {
   skills: Skill[]
   drills: Drill[]
   practiceTests: PracticeTest[]
+  learningResources: LearningResourceUnit[]
   programPlan?: ProgramPlan
 }
 
@@ -48,10 +51,15 @@ function percent(value: number, total: number) {
   return total ? Math.round((value / total) * 100) : 0
 }
 
-export function RoadmapPage({ student, skills, drills, practiceTests, programPlan }: RoadmapPageProps) {
+export function RoadmapPage({ student, skills, drills, practiceTests, learningResources, programPlan }: RoadmapPageProps) {
   const roadmap = buildScoreRoadmap(student, skills, drills, practiceTests, localDateKey())
   const activeIndex = roadmap.milestones.findIndex((milestone) => milestone.id === roadmap.activeMilestone.id)
-  const conceptsRemaining = skills.filter((skill) => ['not_yet_taught', 'learning'].includes(skill.conceptState)).length
+  const skillsById = new Map(skills.map((skill) => [skill.id, skill]))
+  const conceptsRemaining = curriculumMap.filter((entry) => {
+    const skill = skillsById.get(entry.skillId)
+    if (!skill) return false
+    return ['not-started', 'in-progress'].includes(assessCurriculumProgress(entry, skill, learningResources).status)
+  }).length
   const currentDate = localDateKey()
   const activeProgramBlock = programPlan?.blocks.find((block) => block.startDate <= currentDate && block.endDate >= currentDate)
 
