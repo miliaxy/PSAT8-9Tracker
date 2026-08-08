@@ -129,7 +129,10 @@ export function RoadmapPage({ student, skills, drills, practiceTests, learningRe
               <strong>Mastery, timing, and transfer</strong>
               <small>No broad new units after school begins unless new test evidence reveals a genuine gap.</small>
             </div>
-            <a href="#curriculum"><BookOpenCheck size={15} /> Open curriculum map</a>
+            <nav className="program-plan__subject-links" aria-label="Open subject learning maps">
+              <a href="#reading-writing"><BookOpenCheck size={15} /> R&amp;W learning map</a>
+              <a href="#math"><BookOpenCheck size={15} /> Math learning map</a>
+            </nav>
           </div>
           <p className="program-plan__principle">{programPlan.principle}</p>
           {activeProgramBlock && (

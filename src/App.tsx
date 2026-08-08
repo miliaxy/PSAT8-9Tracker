@@ -10,7 +10,6 @@ import type { DashboardBundle } from './types/models'
 
 const TodayPage = lazy(() => import('./pages/TodayPage').then((module) => ({ default: module.TodayPage })))
 const RoadmapPage = lazy(() => import('./pages/RoadmapPage').then((module) => ({ default: module.RoadmapPage })))
-const CurriculumPage = lazy(() => import('./pages/CurriculumPage').then((module) => ({ default: module.CurriculumPage })))
 const WeekPage = lazy(() => import('./pages/WeekPage').then((module) => ({ default: module.WeekPage })))
 const ScoresPage = lazy(() => import('./pages/ScoresPage').then((module) => ({ default: module.ScoresPage })))
 const SkillPage = lazy(() => import('./pages/SkillPage').then((module) => ({ default: module.SkillPage })))
@@ -18,13 +17,14 @@ const BooksPage = lazy(() => import('./pages/BooksPage').then((module) => ({ def
 const CoachingRulesPage = lazy(() => import('./pages/CoachingRulesPage').then((module) => ({ default: module.CoachingRulesPage })))
 const PlannerPage = lazy(() => import('./pages/PlannerPage').then((module) => ({ default: module.PlannerPage })))
 
-const validViews: ViewId[] = ['today', 'roadmap', 'curriculum', 'week', 'scores', 'reading-writing', 'math', 'books', 'how-it-works', 'planner']
+const validViews: ViewId[] = ['today', 'roadmap', 'week', 'scores', 'reading-writing', 'math', 'books', 'how-it-works', 'planner']
 const completionStorageKey = 'psat-pathway-demo-completed-tasks'
 
 function getInitialView(allowPlanner = false): ViewId {
-  const hashView = window.location.hash.slice(1) as ViewId
+  const hashView = window.location.hash.slice(1)
+  if (hashView === 'curriculum') return 'reading-writing'
   if (hashView === 'planner' && !allowPlanner) return 'today'
-  return validViews.includes(hashView) ? hashView : 'today'
+  return validViews.includes(hashView as ViewId) ? hashView as ViewId : 'today'
 }
 
 function initialCompletion(bundle: DashboardBundle, demoMode: boolean) {
@@ -169,16 +169,14 @@ function Dashboard({ bundle, demoMode, onDataChanged }: { bundle: DashboardBundl
         )
       case 'roadmap':
         return <RoadmapPage student={bundle.student} skills={bundle.skills} drills={bundle.drills} practiceTests={bundle.practiceTests} learningResources={bundle.learningResources} programPlan={bundle.programPlan} />
-      case 'curriculum':
-        return <CurriculumPage skills={bundle.skills} resources={bundle.learningResources} />
       case 'week':
         return <WeekPage plan={bundle.studyPlan} completedTaskIds={completedTaskIds} onToggleTask={toggleTask} studentId={!demoMode ? bundle.student.id : undefined} skills={bundle.skills} drills={bundle.drills} practiceTests={bundle.practiceTests} onResultSaved={!demoMode ? onDataChanged : undefined} />
       case 'scores':
         return <ScoresPage tests={bundle.practiceTests} targetScore={bundle.student.targetScore} />
       case 'reading-writing':
-        return <SkillPage key="reading-writing" section="Reading & Writing" allSkills={bundle.skills} drills={bundle.drills} tests={bundle.practiceTests} targetScore={bundle.student.targetScore} />
+        return <SkillPage key="reading-writing" section="Reading & Writing" allSkills={bundle.skills} drills={bundle.drills} tests={bundle.practiceTests} targetScore={bundle.student.targetScore} resources={bundle.learningResources} />
       case 'math':
-        return <SkillPage key="math" section="Math" allSkills={bundle.skills} drills={bundle.drills} tests={bundle.practiceTests} targetScore={bundle.student.targetScore} />
+        return <SkillPage key="math" section="Math" allSkills={bundle.skills} drills={bundle.drills} tests={bundle.practiceTests} targetScore={bundle.student.targetScore} resources={bundle.learningResources} />
       case 'books':
         return <BooksPage books={bundle.books} resources={bundle.learningResources} />
       case 'how-it-works':

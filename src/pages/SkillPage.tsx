@@ -1,9 +1,9 @@
 import {
   Activity,
+  BookOpenCheck,
   CheckCircle2,
   Clock3,
   Filter,
-  GraduationCap,
   Lightbulb,
   Search,
   Target,
@@ -13,7 +13,9 @@ import { useMemo, useState } from 'react'
 import { ScoreChart } from '../components/ScoreChart'
 import { SkillCard } from '../components/SkillCard'
 import { EmptyState, PageHeader, ProgressBar, StatCard, StatusBadge } from '../components/ui'
-import type { Drill, PracticeTest, Section, Skill } from '../types/models'
+import { curriculumBySkillId, ixlBySkillId } from '../data/curriculumMap'
+import type { Drill, LearningResourceUnit, PracticeTest, Section, Skill } from '../types/models'
+import { assessCurriculumProgress, type CurriculumLearningStatus } from '../utils/curriculumProgress'
 import { formatDate } from '../utils/format'
 
 interface SkillPageProps {
@@ -22,6 +24,7 @@ interface SkillPageProps {
   drills: Drill[]
   tests: PracticeTest[]
   targetScore: number
+  resources: LearningResourceUnit[]
 }
 
 type StatusFilter = 'all' | 'attention' | 'strong'
@@ -34,9 +37,13 @@ function mixedAccuracyTarget(targetScore: number) {
   return 80
 }
 
-export function SkillPage({ section, allSkills, drills, tests, targetScore }: SkillPageProps) {
+export function SkillPage({ section, allSkills, drills, tests, targetScore, resources }: SkillPageProps) {
   const sectionSkills = useMemo(() => allSkills.filter((skill) => skill.section === section), [allSkills, section])
   const sectionDrills = useMemo(() => drills.filter((drill) => drill.section === section), [drills, section])
+  const learningAssessments = useMemo(() => new Map(sectionSkills.flatMap((skill) => {
+    const entry = curriculumBySkillId.get(skill.id)
+    return entry ? [[skill.id, assessCurriculumProgress(entry, skill, resources)] as const] : []
+  })), [resources, sectionSkills])
   const domains = [...new Set(sectionSkills.map((skill) => skill.domain))]
   const domainSummaries = domains.map((domain) => {
     const testEvidence = tests
@@ -60,6 +67,7 @@ export function SkillPage({ section, allSkills, drills, tests, targetScore }: Sk
   })
   const [domainFilter, setDomainFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [learningFilter, setLearningFilter] = useState<'all' | CurriculumLearningStatus>('all')
   const [skillQuery, setSkillQuery] = useState('')
 
   const filteredSkills = sectionSkills.filter((skill) => {
@@ -68,9 +76,10 @@ export function SkillPage({ section, allSkills, drills, tests, targetScore }: Sk
       statusFilter === 'all' ||
       (statusFilter === 'strong' && ['Strong', 'Mastered'].includes(skill.combinedStatus)) ||
       (statusFilter === 'attention' && !['Strong', 'Mastered'].includes(skill.combinedStatus))
+    const matchesLearning = learningFilter === 'all' || learningAssessments.get(skill.id)?.status === learningFilter
     const normalizedQuery = skillQuery.trim().toLowerCase()
     const matchesQuery = !normalizedQuery || `${skill.name} ${skill.domain} ${skill.description}`.toLowerCase().includes(normalizedQuery)
-    return matchesDomain && matchesStatus && matchesQuery
+    return matchesDomain && matchesStatus && matchesLearning && matchesQuery
   })
   const groupedSkills = domains
     .map((domain) => ({
@@ -86,11 +95,15 @@ export function SkillPage({ section, allSkills, drills, tests, targetScore }: Sk
   const accuracyTarget = mixedAccuracyTarget(targetScore)
   const strongSkills = sectionSkills.filter((skill) => ['Strong', 'Mastered'].includes(skill.combinedStatus)).length
   const improvingSkills = sectionSkills.filter((skill) => skill.trend === 'up').length
+  const learningCounts = [...learningAssessments.values()].reduce((counts, assessment) => {
+    counts[assessment.status] += 1
+    return counts
+  }, { learned: 0, reinforce: 0, review: 0, 'in-progress': 0, verify: 0, 'not-started': 0 } as Record<CurriculumLearningStatus, number>)
   const sectionName = section === 'Reading & Writing' ? 'Reading & Writing' : 'Math'
   const sectionDescription =
     section === 'Reading & Writing'
-      ? 'Track every College Board domain using separate full-test and daily-drill signals.'
-      : 'See concept readiness, Khan learning progress, and performance under test conditions.'
+      ? 'See learning status, matched study resources, and separate full-test and daily-drill signals.'
+      : 'See concept readiness, learning resources, and performance under test conditions.'
 
   return (
     <>
@@ -98,7 +111,7 @@ export function SkillPage({ section, allSkills, drills, tests, targetScore }: Sk
         eyebrow={`${sectionName} coaching`}
         title={`${sectionName} skill map`}
         description={sectionDescription}
-        action={<span className="evidence-chip"><Activity size={16} /> Two evidence streams</span>}
+        action={<span className="evidence-chip"><BookOpenCheck size={16} /> Learning + performance</span>}
       />
 
       <section className="accuracy-target-panel" aria-label={`${sectionName} accuracy target`}>
@@ -164,20 +177,18 @@ export function SkillPage({ section, allSkills, drills, tests, targetScore }: Sk
         </article>
       </section>
 
-      {section === 'Math' && (
-        <section className="concept-strip" aria-label="Math concept states">
-          <div><GraduationCap size={19} /><span>Learning path</span></div>
-          <span className="concept-state concept-state--not-yet-taught">Not yet taught · {sectionSkills.filter((skill) => skill.conceptState === 'not_yet_taught').length}</span>
-          <span className="concept-state concept-state--learning">Learning · {sectionSkills.filter((skill) => skill.conceptState === 'learning').length}</span>
-          <span className="concept-state concept-state--needs-review">Needs review · {sectionSkills.filter((skill) => skill.conceptState === 'needs_review').length}</span>
-          <span className="concept-state concept-state--strong">Strong · {sectionSkills.filter((skill) => ['strong', 'mastered'].includes(skill.conceptState)).length}</span>
-        </section>
-      )}
+      <section className="learning-summary-strip" aria-label={`${sectionName} learning progress`}>
+        <div className="learning-summary-strip__title"><BookOpenCheck size={19} /><span>Learning progress</span></div>
+        <div><span>Learned</span><strong>{learningCounts.learned}</strong></div>
+        <div><span>Studied</span><strong>{learningCounts.reinforce + learningCounts.review}</strong></div>
+        <div><span>Verify</span><strong>{learningCounts.verify}</strong></div>
+        <div><span>Still learning</span><strong>{learningCounts['in-progress'] + learningCounts['not-started']}</strong></div>
+      </section>
 
       <section className="panel skills-panel">
         <div className="panel__header skills-panel__header">
           <div>
-            <span className="eyebrow">Skill-level coaching</span>
+            <span className="eyebrow">Learning and performance by skill</span>
             <h2>
               {filteredSkills.length} {filteredSkills.length === 1 ? 'skill' : 'skills'} across {groupedSkills.length} {groupedSkills.length === 1 ? 'domain' : 'domains'}
             </h2>
@@ -204,8 +215,20 @@ export function SkillPage({ section, allSkills, drills, tests, targetScore }: Sk
                 <option value="strong">Strong / mastered</option>
               </select>
             </label>
-            {(skillQuery || domainFilter !== 'all' || statusFilter !== 'all') && (
-              <button className="filter-clear" type="button" onClick={() => { setSkillQuery(''); setDomainFilter('all'); setStatusFilter('all') }}><X size={14} /> Clear</button>
+            <label>
+              <span className="sr-only">Filter by learning status</span>
+              <select value={learningFilter} onChange={(event) => setLearningFilter(event.target.value as 'all' | CurriculumLearningStatus)}>
+                <option value="all">All learning stages</option>
+                <option value="not-started">Not yet learned</option>
+                <option value="in-progress">Learning in progress</option>
+                <option value="verify">Prior study · verify</option>
+                <option value="review">Studied · review needed</option>
+                <option value="reinforce">Studied · reinforce</option>
+                <option value="learned">Learned</option>
+              </select>
+            </label>
+            {(skillQuery || domainFilter !== 'all' || statusFilter !== 'all' || learningFilter !== 'all') && (
+              <button className="filter-clear" type="button" onClick={() => { setSkillQuery(''); setDomainFilter('all'); setStatusFilter('all'); setLearningFilter('all') }}><X size={14} /> Clear</button>
             )}
           </div>
         </div>
@@ -217,7 +240,16 @@ export function SkillPage({ section, allSkills, drills, tests, targetScore }: Sk
                 <span>{group.skills.length} {group.skills.length === 1 ? 'skill' : 'skills'}</span>
               </div>
               <div className="skill-list">
-                {group.skills.map((skill) => <SkillCard skill={skill} showDomain={false} key={skill.id} />)}
+                {group.skills.map((skill) => (
+                  <SkillCard
+                    skill={skill}
+                    showDomain={false}
+                    curriculumEntry={curriculumBySkillId.get(skill.id)}
+                    learningAssessment={learningAssessments.get(skill.id)}
+                    ixlResource={ixlBySkillId.get(skill.id)}
+                    key={skill.id}
+                  />
+                ))}
               </div>
             </section>
           ))}

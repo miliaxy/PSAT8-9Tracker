@@ -1,6 +1,5 @@
 import {
   BarChart3,
-  BookOpenCheck,
   BookOpen,
   CalendarDays,
   Calculator,
@@ -17,7 +16,7 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import type { Student } from '../types/models'
 
-export type ViewId = 'today' | 'roadmap' | 'curriculum' | 'week' | 'scores' | 'reading-writing' | 'math' | 'books' | 'how-it-works' | 'planner'
+export type ViewId = 'today' | 'roadmap' | 'week' | 'scores' | 'reading-writing' | 'math' | 'books' | 'how-it-works' | 'planner'
 
 interface AppShellProps {
   activeView: ViewId
@@ -33,7 +32,6 @@ interface AppShellProps {
 const navItems: { id: ViewId; label: string; shortLabel: string; icon: typeof LayoutDashboard }[] = [
   { id: 'today', label: 'Today', shortLabel: 'Today', icon: LayoutDashboard },
   { id: 'roadmap', label: 'Road to Target', shortLabel: 'Roadmap', icon: Route },
-  { id: 'curriculum', label: 'Curriculum Map', shortLabel: 'Learn', icon: BookOpenCheck },
   { id: 'week', label: 'Week', shortLabel: 'Week', icon: CalendarDays },
   { id: 'scores', label: 'Scores', shortLabel: 'Scores', icon: BarChart3 },
   { id: 'reading-writing', label: 'Reading & Writing', shortLabel: 'R&W', icon: PenLine },
@@ -48,7 +46,6 @@ const mobilePrimaryViews: ViewId[] = ['today', 'roadmap', 'reading-writing', 'ma
 const viewTitles: Record<ViewId, string> = {
   today: 'Today',
   roadmap: 'Road to Target',
-  curriculum: 'Curriculum Map',
   week: 'Weekly Plan',
   scores: 'Scores',
   'reading-writing': 'Reading & Writing',
