@@ -27,6 +27,17 @@ const decisionSteps = [
 
 const ruleGroups = [
   {
+    title: 'The target controls the roadmap',
+    eyebrow: 'Work backward from test day',
+    icon: Target,
+    tone: 'violet',
+    rules: [
+      'The target score, test date, latest full-test evidence, and remaining skill coverage create weekly milestones.',
+      'Every daily assignment must advance the active milestone or deliberately protect retention and recovery.',
+      'A new drill or test result recalculates the remaining trajectory; the calendar is not treated as fixed when evidence changes.',
+    ],
+  },
+  {
     title: 'Evidence stays transparent',
     eyebrow: 'What the engine reads',
     icon: BarChart3,

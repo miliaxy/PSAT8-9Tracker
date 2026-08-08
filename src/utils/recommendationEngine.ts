@@ -6,13 +6,42 @@ import type {
   PracticeTest,
   RecommendationEvidenceItem,
   RecommendationEvidenceSummary,
+  ScoreRoadmap,
   Skill,
   Student,
 } from '../types/models'
+import { buildScoreRoadmap } from './roadmapEngine'
 
 export interface RecommendedPlan {
   draft: PlanningDraftContent
   evidenceSummary: RecommendationEvidenceSummary
+}
+
+function connectRoadmap(plan: RecommendedPlan, roadmap: ScoreRoadmap): RecommendedPlan {
+  return {
+    draft: {
+      ...plan.draft,
+      rationale: `${plan.draft.rationale} Active roadmap milestone: ${roadmap.activeMilestone.title}. ${roadmap.activeMilestone.outcomes.join(' ')}`,
+    },
+    evidenceSummary: {
+      ...plan.evidenceSummary,
+      rulesApplied: [
+        `Every assignment must advance the active ${roadmap.activeMilestone.title} milestone or protect retention/recovery.`,
+        ...plan.evidenceSummary.rulesApplied,
+      ],
+      roadmap: {
+        phaseId: roadmap.activePhase.id,
+        phaseLabel: roadmap.activePhase.label,
+        milestoneId: roadmap.activeMilestone.id,
+        milestoneTitle: roadmap.activeMilestone.title,
+        weekStart: roadmap.activeMilestone.weekStart,
+        weekEnd: roadmap.activeMilestone.weekEnd,
+        scoreCheckpoint: roadmap.activeMilestone.scoreCheckpoint,
+        prioritySkillIds: roadmap.activeMilestone.prioritySkillIds,
+        outcomes: roadmap.activeMilestone.outcomes,
+      },
+    },
+  }
 }
 
 const skillLearningResources: Partial<Record<string, string>> = {
@@ -446,8 +475,15 @@ export function buildRecommendedPlan(
   targetDate: string,
   inputs: ParentPlanningInputs,
 ): RecommendedPlan {
+  const roadmap = buildScoreRoadmap(student, skills, drills, practiceTests, targetDate)
+  const roadmapPriorities = new Set(roadmap.activeMilestone.prioritySkillIds)
   const ranked = skills
     .map((skill) => rankSkill(skill, drills, practiceTests, targetDate))
+    .map((priority) => roadmapPriorities.has(priority.skillId) ? {
+      ...priority,
+      priorityScore: priority.priorityScore + 30,
+      reasons: [`Active ${roadmap.activeMilestone.title} milestone`, ...priority.reasons],
+    } : priority)
     .sort((a, b) => b.priorityScore - a.priorityScore || a.skillName.localeCompare(b.skillName))
 
   const daysRemaining = daysBetween(targetDate, student.testDate)
@@ -459,8 +495,8 @@ export function buildRecommendedPlan(
       : 'steady'
 
   const weekday = dayOfWeek(targetDate)
-  if (weekday === 0) return sundayPlan(ranked, daysRemaining, scoreGap, urgency)
-  if (weekday === 6) return saturdayPlan(ranked, drills, targetDate, inputs, daysRemaining, scoreGap, urgency)
+  if (weekday === 0) return connectRoadmap(sundayPlan(ranked, daysRemaining, scoreGap, urgency), roadmap)
+  if (weekday === 6) return connectRoadmap(saturdayPlan(ranked, drills, targetDate, inputs, daysRemaining, scoreGap, urgency), roadmap)
 
   const spiralTask = mixedSpiralTask(ranked, skills, drills, targetDate)
   const spiralMinutes = spiralTask && inputs.availableMinutes >= 15 ? spiralTask.minutes : 0
@@ -492,7 +528,7 @@ export function buildRecommendedPlan(
   const focusNames = priorities.map((priority) => priority.skillName)
   const rationaleParts = priorities.map((priority) => `${priority.skillName}: ${priority.reasons.slice(0, 3).join('; ')}`)
 
-  return {
+  return connectRoadmap({
     draft: {
       focus: focusNames.length ? `${focusNames.join(' + ')} + Mixed spiral + Daily reading` : 'Mixed spiral + Daily independent reading',
       dayType: inputs.dayType,
@@ -527,5 +563,5 @@ export function buildRecommendedPlan(
       ],
       priorities: ranked.slice(0, 5),
     },
-  }
+  }, roadmap)
 }

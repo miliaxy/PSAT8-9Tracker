@@ -235,6 +235,88 @@ export interface RecommendationEvidenceSummary {
   urgency: 'steady' | 'focused' | 'final-stretch'
   rulesApplied: string[]
   priorities: RecommendationEvidenceItem[]
+  roadmap?: RoadmapLink
+}
+
+export type RoadmapPhaseId = 'foundation' | 'mastery' | 'integration' | 'readiness'
+export type RoadmapStatus = 'complete' | 'active' | 'upcoming'
+
+export interface RoadmapPhase {
+  id: RoadmapPhaseId
+  label: string
+  startDate: string
+  endDate: string
+  status: RoadmapStatus
+  objective: string
+  exitCriteria: string[]
+}
+
+export interface RoadmapSkillPriority {
+  skillId: string
+  skillName: string
+  section: Section
+  domain: string
+  status: CoachingStatus
+  priorityScore: number
+  reason: string
+}
+
+export interface RoadmapMilestone {
+  id: string
+  weekStart: string
+  weekEnd: string
+  phaseId: RoadmapPhaseId
+  status: RoadmapStatus
+  title: string
+  scoreCheckpoint: number
+  readingWritingCheckpoint: number
+  mathCheckpoint: number
+  prioritySkillIds: string[]
+  prioritySkillNames: string[]
+  outcomes: string[]
+  practiceTestDue: boolean
+}
+
+export interface RoadmapSectionSummary {
+  section: Section
+  currentScore: number
+  targetScore: number
+  totalSkills: number
+  learnedSkills: number
+  masteredSkills: number
+  noDrillEvidence: number
+  prioritySkills: RoadmapSkillPriority[]
+}
+
+export interface ScoreRoadmap {
+  asOfDate: string
+  testDate: string
+  daysRemaining: number
+  weeksRemaining: number
+  currentScore: number
+  targetScore: number
+  scoreGap: number
+  phases: RoadmapPhase[]
+  milestones: RoadmapMilestone[]
+  activePhase: RoadmapPhase
+  activeMilestone: RoadmapMilestone
+  sections: RoadmapSectionSummary[]
+  conceptCoveragePercent: number
+  foundationMasteryPercent: number
+  nextPracticeTestDate: string
+  evidenceNote: string
+}
+
+export interface RoadmapLink {
+  phaseId: RoadmapPhaseId
+  phaseLabel: string
+  milestoneId: string
+  milestoneTitle: string
+  weekStart: string
+  weekEnd: string
+  scoreCheckpoint: number
+  prioritySkillIds: string[]
+  outcomes: string[]
 }
 
 export interface LearningResourceUnit {

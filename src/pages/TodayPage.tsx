@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   CircleGauge,
   Clock3,
+  Route,
   Sparkles,
   Target,
   TrendingUp,
@@ -12,6 +13,7 @@ import { TaskCard } from '../components/TaskCard'
 import { EmptyState, PageHeader, ProgressBar, StatCard } from '../components/ui'
 import type { DailyTask, Drill, PracticeTest, Skill, Student, StudyPlan } from '../types/models'
 import { daysBetween, formatDate, formatLongDate } from '../utils/format'
+import { buildScoreRoadmap } from '../utils/roadmapEngine'
 
 interface TodayPageProps {
   student: Student
@@ -23,6 +25,7 @@ interface TodayPageProps {
   completedTaskIds: Set<string>
   onToggleTask: (taskId: string) => void
   onViewWeek: () => void
+  onViewRoadmap: () => void
   canRecordResults: boolean
   onResultSaved: () => void
 }
@@ -40,7 +43,7 @@ function addDays(dateKey: string, days: number) {
   return localDateKey(date)
 }
 
-export function TodayPage({ student, tasks, plan, practiceTests, drills, skills, completedTaskIds, onToggleTask, onViewWeek, canRecordResults, onResultSaved }: TodayPageProps) {
+export function TodayPage({ student, tasks, plan, practiceTests, drills, skills, completedTaskIds, onToggleTask, onViewWeek, onViewRoadmap, canRecordResults, onResultSaved }: TodayPageProps) {
   const todayKey = localDateKey()
   const today = plan.days.find((day) => day.date === todayKey)
   const tomorrowKey = addDays(todayKey, 1)
@@ -64,6 +67,9 @@ export function TodayPage({ student, tasks, plan, practiceTests, drills, skills,
   const pointsToGoal = Math.max(0, student.targetScore - student.currentScore)
   const daysToTest = daysBetween(todayKey, student.testDate)
   const nextIncompleteTask = tasks.find((task) => !completedTaskIds.has(task.id))
+  const roadmap = buildScoreRoadmap(student, skills, drills, practiceTests, todayKey)
+  const activePriorityIds = new Set(roadmap.activeMilestone.prioritySkillIds)
+  const roadmapSkillsToday = todaySkills.filter((skill) => activePriorityIds.has(skill.id))
 
   const continueNextTask = () => {
     if (!nextIncompleteTask) return
@@ -133,6 +139,21 @@ export function TodayPage({ student, tasks, plan, practiceTests, drills, skills,
         <StatCard label="Tests logged" value={practiceTests.length} detail={latestTest ? `Latest: ${formatDate(latestTest.date)}` : 'No test records yet'} icon={Sparkles} tone="gold" />
         <StatCard label="Skills strong" value={`${strongSkills} / ${skills.length}`} detail="Strong or mastered" icon={CheckCircle2} tone="teal" />
         <StatCard label="PSAT 8/9 test day" value={formatDate(student.testDate, { month: 'short', day: 'numeric' })} detail={daysToTest >= 0 ? `${daysToTest} days away` : 'Date has passed'} icon={CalendarDays} tone="blue" />
+      </section>
+
+      <section className="today-roadmap-strip">
+        <span className="today-roadmap-strip__icon"><Route size={19} /></span>
+        <div>
+          <span className="eyebrow">This week on the road to {student.targetScore}</span>
+          <h2>{roadmap.activeMilestone.title}</h2>
+          <p>{roadmapSkillsToday.length
+            ? `Today directly advances ${roadmapSkillsToday.map((skill) => skill.name).join(' · ')}.`
+            : today?.dayType === 'no-study'
+              ? 'Today protects recovery so the next study day can advance the milestone.'
+              : 'Today is maintenance or reflection work; the Planning Room checks that the week still advances its priority skills.'}</p>
+        </div>
+        <div className="today-roadmap-strip__target"><span>Weekly checkpoint</span><strong>{roadmap.activeMilestone.scoreCheckpoint}</strong></div>
+        <button className="button button--quiet" type="button" onClick={onViewRoadmap}>View roadmap <ArrowRight size={14} /></button>
       </section>
 
       {nextIncompleteTask && (

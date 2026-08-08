@@ -3,10 +3,12 @@ import {
   CalendarCheck2,
   CheckCircle2,
   Clock3,
+  Flag,
   FilePenLine,
   Lightbulb,
   LoaderCircle,
   Plus,
+  Route,
   Save,
   Send,
   ShieldCheck,
@@ -34,6 +36,7 @@ import type {
 } from '../types/models'
 import { formatDate } from '../utils/format'
 import { buildRecommendedPlan } from '../utils/recommendationEngine'
+import { buildScoreRoadmap, validatePlanAgainstRoadmap } from '../utils/roadmapEngine'
 
 interface PlannerPageProps {
   student: Student
@@ -127,7 +130,15 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
     () => record?.draft.tasks.reduce((sum, task) => sum + Number(task.minutes || 0), 0) ?? 0,
     [record],
   )
-  const validationError = validateDraft(record, inputs.availableMinutes)
+  const roadmap = useMemo(
+    () => buildScoreRoadmap(student, skills, drills, practiceTests, targetDate),
+    [student, skills, drills, practiceTests, targetDate],
+  )
+  const roadmapIssues = useMemo(
+    () => record ? validatePlanAgainstRoadmap(record.draft, roadmap, skills, drills, targetDate) : [],
+    [record, roadmap, skills, drills, targetDate],
+  )
+  const validationError = validateDraft(record, inputs.availableMinutes) ?? roadmapIssues[0] ?? null
   const published = record?.status === 'published'
 
   const changeTargetDate = (nextDate: string) => {
@@ -195,7 +206,25 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
 
   const save = async () => {
     if (!record || published) return
-    const recordToSave = { ...record, parentInputs: inputs, draft: { ...record.draft, dayType: inputs.dayType } }
+    const recordToSave = {
+      ...record,
+      parentInputs: inputs,
+      draft: { ...record.draft, dayType: inputs.dayType },
+      evidenceSummary: {
+        ...record.evidenceSummary,
+        roadmap: {
+          phaseId: roadmap.activePhase.id,
+          phaseLabel: roadmap.activePhase.label,
+          milestoneId: roadmap.activeMilestone.id,
+          milestoneTitle: roadmap.activeMilestone.title,
+          weekStart: roadmap.activeMilestone.weekStart,
+          weekEnd: roadmap.activeMilestone.weekEnd,
+          scoreCheckpoint: roadmap.activeMilestone.scoreCheckpoint,
+          prioritySkillIds: roadmap.activeMilestone.prioritySkillIds,
+          outcomes: roadmap.activeMilestone.outcomes,
+        },
+      },
+    }
     const saved = await run('save', () => savePlanningDraft(recordToSave))
     if (!saved) return
     setRecord(saved)
@@ -204,7 +233,25 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
 
   const publish = async () => {
     if (!record || published || validationError || !reviewed) return
-    const recordToSave = { ...record, parentInputs: inputs, draft: { ...record.draft, dayType: inputs.dayType } }
+    const recordToSave = {
+      ...record,
+      parentInputs: inputs,
+      draft: { ...record.draft, dayType: inputs.dayType },
+      evidenceSummary: {
+        ...record.evidenceSummary,
+        roadmap: {
+          phaseId: roadmap.activePhase.id,
+          phaseLabel: roadmap.activePhase.label,
+          milestoneId: roadmap.activeMilestone.id,
+          milestoneTitle: roadmap.activeMilestone.title,
+          weekStart: roadmap.activeMilestone.weekStart,
+          weekEnd: roadmap.activeMilestone.weekEnd,
+          scoreCheckpoint: roadmap.activeMilestone.scoreCheckpoint,
+          prioritySkillIds: roadmap.activeMilestone.prioritySkillIds,
+          outcomes: roadmap.activeMilestone.outcomes,
+        },
+      },
+    }
     const saved = await run('publish', () => savePlanningDraft(recordToSave))
     if (!saved) return
     const publishedDate = await run('publish', () => publishPlanningDraft(saved.id))
@@ -229,6 +276,16 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
           <strong>Draft first, publish second</strong>
           <p>The rules can recommend homework, but only your reviewed version reaches the student dashboard.</p>
         </div>
+      </section>
+
+      <section className="planner-roadmap-link">
+        <span className="planner-roadmap-link__icon"><Route size={18} /></span>
+        <div>
+          <span className="eyebrow">Active 1400 milestone · {formatDate(roadmap.activeMilestone.weekStart)}–{formatDate(roadmap.activeMilestone.weekEnd)}</span>
+          <strong>{roadmap.activeMilestone.title}</strong>
+          <p>{roadmap.activeMilestone.outcomes[0]}</p>
+        </div>
+        <div className="planner-roadmap-link__checkpoint"><Flag size={14} /><span>Checkpoint</span><strong>{roadmap.activeMilestone.scoreCheckpoint}</strong></div>
       </section>
 
       <div className="planner-layout">
@@ -370,7 +427,13 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
 
               {!published && (
                 <div className="planner-publish-box">
-                  {validationError && <p className="planner-validation">{validationError}</p>}
+                  {roadmapIssues.length > 0 && (
+                    <div className="planner-roadmap-issues" role="alert">
+                      <strong>Roadmap check found {roadmapIssues.length} {roadmapIssues.length === 1 ? 'issue' : 'issues'}:</strong>
+                      <ul>{roadmapIssues.map((issue) => <li key={issue}>{issue}</li>)}</ul>
+                    </div>
+                  )}
+                  {validationError && !roadmapIssues.length && <p className="planner-validation">{validationError}</p>}
                   <label className="planner-review-check"><input type="checkbox" checked={reviewed} disabled={Boolean(validationError)} onChange={(event) => setReviewed(event.target.checked)} /><span><strong>I reviewed every assignment.</strong> The plan is appropriate and ready for {student.firstName}.</span></label>
                   <div>
                     <button className="button button--secondary" disabled={Boolean(working)} onClick={() => void save()}>{working === 'save' ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />} Save draft</button>

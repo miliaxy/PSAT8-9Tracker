@@ -566,7 +566,7 @@ export async function requestAiPlanningDraft(
 export async function savePlanningDraft(record: PlanningDraftRecord) {
   const { data, error } = await client()
     .from('planning_drafts')
-    .update({ parent_inputs: record.parentInputs, draft: record.draft })
+    .update({ parent_inputs: record.parentInputs, draft: record.draft, evidence_summary: record.evidenceSummary })
     .eq('id', record.id)
     .eq('student_id', record.studentId)
     .eq('status', 'draft')
