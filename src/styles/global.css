@@ -2783,6 +2783,8 @@ strong {
 .planner-review-check { display: flex; align-items: flex-start; gap: 8px; color: var(--ink-soft); font-size: 9.5px; line-height: 1.45; cursor: pointer; }
 .planner-review-check input { margin-top: 2px; accent-color: var(--violet); }
 .planner-review-check strong { display: block; color: var(--ink); font-size: 9.5px; }
+.planner-publish-note { margin: 0; color: var(--ink-soft); font-size: 9.5px; line-height: 1.45; }
+.planner-publish-note strong { display: block; color: var(--ink); font-size: 9.5px; }
 .planner-validation { margin: 0; color: #aa5747; font-size: 9.5px; font-weight: 700; }
 .planner-publish-box:has(.planner-validation) { align-items: flex-start; flex-direction: column; }
 .planner-publish-box:has(.planner-validation) .planner-review-check { opacity: .6; }
