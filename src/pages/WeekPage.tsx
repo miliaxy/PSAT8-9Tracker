@@ -1,4 +1,4 @@
-import { CalendarCheck2, ChevronDown, Clock3, Expand, LocateFixed, Minimize2, Printer, RotateCcw, Sparkles } from 'lucide-react'
+import { CalendarCheck2, ChevronDown, ChevronLeft, ChevronRight, Clock3, Expand, LocateFixed, Minimize2, Printer, RotateCcw, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { TaskCard } from '../components/TaskCard'
 import { PageHeader, ProgressBar } from '../components/ui'
@@ -6,7 +6,8 @@ import type { DayType, Drill, PracticeTest, Skill, StudyPlan } from '../types/mo
 import { formatDate } from '../utils/format'
 
 interface WeekPageProps {
-  plan: StudyPlan
+  plans: StudyPlan[]
+  initialPlanId: string
   completedTaskIds: Set<string>
   onToggleTask: (taskId: string) => void
   studentId?: string
@@ -24,9 +25,12 @@ const dayTypeLabels: Record<DayType, string> = {
   review: 'Review loop',
 }
 
-export function WeekPage({ plan, completedTaskIds, onToggleTask, studentId, skills, drills, practiceTests, onResultSaved }: WeekPageProps) {
+export function WeekPage({ plans, initialPlanId, completedTaskIds, onToggleTask, studentId, skills, drills, practiceTests, onResultSaved }: WeekPageProps) {
   const today = new Date()
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const [selectedPlanId, setSelectedPlanId] = useState(initialPlanId)
+  const selectedPlanIndex = Math.max(0, plans.findIndex((candidate) => candidate.id === selectedPlanId))
+  const plan = plans[selectedPlanIndex]
   const firstDay = plan.days[0]?.date ?? plan.weekOf
   const lastDay = plan.days.at(-1)?.date ?? plan.weekOf
   const initialOpenDay = plan.days.some((day) => day.date === todayKey) ? todayKey : firstDay
@@ -40,6 +44,13 @@ export function WeekPage({ plan, completedTaskIds, onToggleTask, studentId, skil
   const progress = tasks.length ? Math.round((completedCount / tasks.length) * 100) : 0
   const reviewDay = plan.days.find((day) => day.dayType === 'review')
   const allDaysOpen = plan.days.length > 0 && openDays.size === plan.days.length
+
+  const selectPlan = (planId: string) => {
+    const nextPlan = plans.find((candidate) => candidate.id === planId) ?? plans[0]
+    const nextOpenDay = nextPlan.days.some((day) => day.date === todayKey) ? todayKey : nextPlan.days[0]?.date
+    setSelectedPlanId(nextPlan.id)
+    setOpenDays(new Set(nextOpenDay ? [nextOpenDay] : []))
+  }
 
   const toggleDay = (date: string) => {
     setOpenDays((current) => {
@@ -71,6 +82,19 @@ export function WeekPage({ plan, completedTaskIds, onToggleTask, studentId, skil
         description="A flexible rhythm that balances new learning, daily drills, spaced review, and real rest."
         action={<span className="week-range"><CalendarCheck2 size={16} /> {formatDate(firstDay, { month: 'short', day: 'numeric' })}–{formatDate(lastDay, { month: 'short', day: 'numeric' })}</span>}
       />
+
+      {plans.length > 1 && (
+        <nav className="week-switcher" aria-label="Choose a study week">
+          <button type="button" disabled={selectedPlanIndex === 0} onClick={() => selectPlan(plans[selectedPlanIndex - 1].id)}><ChevronLeft size={16} /> Previous week</button>
+          <label>
+            <span>Study week</span>
+            <select value={plan.id} onChange={(event) => selectPlan(event.target.value)}>
+              {plans.map((candidate) => <option key={candidate.id} value={candidate.id}>Week of {formatDate(candidate.weekOf, { month: 'short', day: 'numeric' })}</option>)}
+            </select>
+          </label>
+          <button type="button" disabled={selectedPlanIndex === plans.length - 1} onClick={() => selectPlan(plans[selectedPlanIndex + 1].id)}>Next week <ChevronRight size={16} /></button>
+        </nav>
+      )}
 
       <section className="week-summary">
         <div className="week-summary__main">

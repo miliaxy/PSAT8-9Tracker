@@ -457,6 +457,7 @@ export interface DashboardBundle {
   student: Student
   todayTasks: DailyTask[]
   studyPlan: StudyPlan
+  studyPlans: StudyPlan[]
   practiceTests: PracticeTest[]
   drills: Drill[]
   skills: Skill[]

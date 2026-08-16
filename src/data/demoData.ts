@@ -1104,6 +1104,7 @@ export const demoDashboardBundle: DashboardBundle = {
   student: demoStudent,
   todayTasks,
   studyPlan: demoStudyPlan,
+  studyPlans: [demoStudyPlan],
   practiceTests,
   drills,
   skills,

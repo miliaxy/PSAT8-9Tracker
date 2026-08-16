@@ -114,7 +114,7 @@ export async function loadStudentDashboard(student: Student): Promise<DashboardB
     db.from('practice_test_mistakes').select('*').eq('student_id', studentId).order('question_number'),
     db.from('drills').select('*').eq('student_id', studentId).order('drill_date', { ascending: false }),
     db.from('drill_mistakes').select('*').eq('student_id', studentId),
-    db.from('study_plans').select('*').eq('student_id', studentId).order('week_of', { ascending: false }).limit(1),
+    db.from('study_plans').select('*').eq('student_id', studentId).order('week_of', { ascending: true }),
     db.from('books').select('*').eq('student_id', studentId).order('created_at'),
     db.from('learning_resource_progress').select('*').eq('student_id', studentId).order('provider').order('sequence'),
     db.from('program_plans').select('*').eq('student_id', studentId).eq('status', 'published').order('published_at', { ascending: false }).limit(1).maybeSingle(),
@@ -242,14 +242,15 @@ export async function loadStudentDashboard(student: Student): Promise<DashboardB
     })),
   }))
 
-  let studyPlan = emptyPlan(studentId)
-  const planRow = rows(plansResult.data)[0]
-  if (planRow) {
+  const planRows = rows(plansResult.data)
+  let studyPlans: StudyPlan[] = []
+  if (planRows.length) {
+    const planIds = planRows.map((row) => String(row.id))
     const { data: dayData, error: dayError } = await db
       .from('study_days')
       .select('*')
       .eq('student_id', studentId)
-      .eq('plan_id', String(planRow.id))
+      .in('plan_id', planIds)
       .order('study_date')
     if (dayError) throw new Error(dayError.message)
 
@@ -268,33 +269,33 @@ export async function loadStudentDashboard(student: Student): Promise<DashboardB
     if (taskSkillResult.error) throw new Error(taskSkillResult.error.message)
     const taskSkillRows = rows(taskSkillResult.data)
 
-    const days: StudyDay[] = dayRows.map((day) => ({
-      date: String(day.study_date),
-      dayType: value<DayType>(day, 'day_type'),
-      focus: String(day.focus),
-      note: day.note ? String(day.note) : undefined,
-      tasks: taskRows.filter((task) => task.day_id === day.id).map((task): DailyTask => ({
-        id: String(task.id),
-        date: String(task.task_date),
-        title: String(task.title),
-        description: String(task.description),
-        category: value<TaskCategory>(task, 'category'),
-        section: task.section ? value<Section>(task, 'section') : undefined,
-        minutes: Number(task.minutes),
-        resource: task.resource ? String(task.resource) : undefined,
-        skillIds: taskSkillRows.filter((link) => link.task_id === task.id).map((link) => String(link.skill_id)),
-        initialCompleted: Boolean(task.completed),
-      })),
-    }))
-
-    studyPlan = {
+    studyPlans = planRows.map((planRow) => ({
       id: String(planRow.id),
       studentId,
       weekOf: String(planRow.week_of),
       title: String(planRow.title),
       goal: String(planRow.goal),
-      days,
-    }
+      days: dayRows
+        .filter((day) => String(day.plan_id) === String(planRow.id))
+        .map((day): StudyDay => ({
+          date: String(day.study_date),
+          dayType: value<DayType>(day, 'day_type'),
+          focus: String(day.focus),
+          note: day.note ? String(day.note) : undefined,
+          tasks: taskRows.filter((task) => task.day_id === day.id).map((task): DailyTask => ({
+            id: String(task.id),
+            date: String(task.task_date),
+            title: String(task.title),
+            description: String(task.description),
+            category: value<TaskCategory>(task, 'category'),
+            section: task.section ? value<Section>(task, 'section') : undefined,
+            minutes: Number(task.minutes),
+            resource: task.resource ? String(task.resource) : undefined,
+            skillIds: taskSkillRows.filter((link) => link.task_id === task.id).map((link) => String(link.skill_id)),
+            initialCompleted: Boolean(task.completed),
+          })),
+        })),
+    }))
   }
 
   const books: Book[] = rows(booksResult.data).map((book) => ({
@@ -342,9 +343,13 @@ export async function loadStudentDashboard(student: Student): Promise<DashboardB
     : undefined
 
   const todayKey = localDateKey()
-  const todayTasks = studyPlan.days.find((day) => day.date === todayKey)?.tasks ?? []
+  if (!studyPlans.length) studyPlans = [emptyPlan(studentId)]
+  const studyPlan = studyPlans.find((plan) => plan.days.some((day) => day.date === todayKey))
+    ?? studyPlans.find((plan) => plan.weekOf >= todayKey)
+    ?? studyPlans.at(-1)!
+  const todayTasks = studyPlans.flatMap((plan) => plan.days).find((day) => day.date === todayKey)?.tasks ?? []
 
-  return { student, todayTasks, studyPlan, practiceTests, drills, skills, books, learningResources, programPlan }
+  return { student, todayTasks, studyPlan, studyPlans, practiceTests, drills, skills, books, learningResources, programPlan }
 }
 
 export async function setTaskCompletion(studentId: string, taskId: string, completed: boolean) {

@@ -28,7 +28,8 @@ function getInitialView(allowPlanner = false): ViewId {
 }
 
 function initialCompletion(bundle: DashboardBundle, demoMode: boolean) {
-  const completed = bundle.studyPlan.days
+  const completed = bundle.studyPlans
+    .flatMap((plan) => plan.days)
     .flatMap((day) => day.tasks)
     .filter((task) => task.initialCompleted)
     .map((task) => task.id)
@@ -58,7 +59,7 @@ function Dashboard({ bundle, demoMode, onDataChanged }: { bundle: DashboardBundl
   }, [canPlan])
 
   const allTodayTaskIds = useMemo(() => new Set(bundle.todayTasks.map((task) => task.id)), [bundle.todayTasks])
-  const allTasks = useMemo(() => bundle.studyPlan.days.flatMap((day) => day.tasks), [bundle.studyPlan.days])
+  const allTasks = useMemo(() => bundle.studyPlans.flatMap((plan) => plan.days).flatMap((day) => day.tasks), [bundle.studyPlans])
   const serverCompletedTaskIds = useMemo(() => initialCompletion(bundle, demoMode), [bundle, demoMode])
   const completedTaskIds = useMemo(() => {
     const next = new Set(serverCompletedTaskIds)
@@ -170,7 +171,7 @@ function Dashboard({ bundle, demoMode, onDataChanged }: { bundle: DashboardBundl
       case 'roadmap':
         return <RoadmapPage student={bundle.student} skills={bundle.skills} drills={bundle.drills} practiceTests={bundle.practiceTests} learningResources={bundle.learningResources} programPlan={bundle.programPlan} />
       case 'week':
-        return <WeekPage plan={bundle.studyPlan} completedTaskIds={completedTaskIds} onToggleTask={toggleTask} studentId={!demoMode ? bundle.student.id : undefined} skills={bundle.skills} drills={bundle.drills} practiceTests={bundle.practiceTests} onResultSaved={!demoMode ? onDataChanged : undefined} />
+        return <WeekPage plans={bundle.studyPlans} initialPlanId={bundle.studyPlan.id} completedTaskIds={completedTaskIds} onToggleTask={toggleTask} studentId={!demoMode ? bundle.student.id : undefined} skills={bundle.skills} drills={bundle.drills} practiceTests={bundle.practiceTests} onResultSaved={!demoMode ? onDataChanged : undefined} />
       case 'scores':
         return <ScoresPage tests={bundle.practiceTests} targetScore={bundle.student.targetScore} />
       case 'reading-writing':
