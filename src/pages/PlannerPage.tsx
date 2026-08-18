@@ -292,13 +292,19 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
 
           <label className="field-label">
             Homework date
-            <input
-              type="date"
-              value={targetDate}
-              onChange={(event) => {
-                if (event.target.value) changeTargetDate(event.target.value)
-              }}
-            />
+            <div className="planner-date-control">
+              <input
+                type="date"
+                value={targetDate}
+                onChange={(event) => {
+                  if (event.target.value) changeTargetDate(event.target.value)
+                }}
+              />
+              <div className="planner-date-control__actions">
+                <button type="button" className="button button--quiet" onClick={() => changeTargetDate(addDays(targetDate, -1))}>Previous day</button>
+                <button type="button" className="button button--quiet" onClick={() => changeTargetDate(addDays(targetDate, 1))}>Next day</button>
+              </div>
+            </div>
           </label>
 
           <div className="planner-field-row">

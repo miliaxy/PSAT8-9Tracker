@@ -2622,6 +2622,23 @@ strong {
 .field-label select:disabled,
 .field-label textarea:disabled { color: #596176; background: #f4f5f8; opacity: 1; }
 
+.planner-date-control {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.planner-date-control__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.planner-date-control__actions .button {
+  justify-content: center;
+  min-height: 34px;
+}
+
 .planner-field-row {
   display: flex;
   align-items: flex-start;
