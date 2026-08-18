@@ -295,7 +295,6 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
             <input
               type="date"
               value={targetDate}
-              min={localDateKey()}
               onChange={(event) => {
                 if (event.target.value) changeTargetDate(event.target.value)
               }}
