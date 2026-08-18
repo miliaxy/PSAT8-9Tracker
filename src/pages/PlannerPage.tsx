@@ -292,7 +292,14 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
 
           <label className="field-label">
             Homework date
-            <input type="date" value={targetDate} min={localDateKey()} onChange={(event) => changeTargetDate(event.target.value)} />
+            <input
+              type="date"
+              value={targetDate}
+              min={localDateKey()}
+              onChange={(event) => {
+                if (event.target.value) changeTargetDate(event.target.value)
+              }}
+            />
           </label>
 
           <div className="planner-field-row">

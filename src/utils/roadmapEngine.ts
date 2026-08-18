@@ -445,6 +445,7 @@ export function validatePlanAgainstRoadmap(
 
   for (const task of draft.tasks) {
     const taskText = `${task.title} ${task.description} ${task.resource ?? ''}`
+    const hasDirectResource = /^https?:\/\/\S+$/i.test(task.resource?.trim() ?? '')
     const exempt = task.category === 'Reading'
       || task.category === 'Practice test'
       || task.category === 'Test strategy'
@@ -455,7 +456,17 @@ export function validatePlanAgainstRoadmap(
 
     if (task.skillIds.some((skillId) => activePriorities.has(skillId))) advancesMilestone = true
 
+    const isSkillLessonOrReview = task.skillIds.length > 0
+      && ['Learn', 'Review'].includes(task.category)
+      && !/mistake|error|correction/i.test(`${task.title} ${task.description}`)
+    if (isSkillLessonOrReview && !hasDirectResource) {
+      issues.push(`“${task.title}” needs a direct lesson or course link so the student knows exactly where to work.`)
+    }
+
     if (task.category !== 'Drill') continue
+    if (!hasDirectResource || /satsuiteeducatorquestionbank\.collegeboard\.org\/digital\/(?:search|results)/i.test(task.resource ?? '')) {
+      issues.push(`“${task.title}” needs an attached student question packet, not a generic Question Bank page.`)
+    }
     const assignsHard = /\b\d+\s+Hard(?:\s+questions?)?\b/i.test(taskText)
       || /\bDifficulty\s*:\s*Hard\b/i.test(taskText)
     if (!/\b\d+\s+(?:(?:official|mixed|PSAT\s*8\/9)\s+)*questions?\b/i.test(taskText)) {
