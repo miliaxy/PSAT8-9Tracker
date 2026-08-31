@@ -210,6 +210,8 @@ function makeSkillTasks(
     const topic = conceptInProgress ? learningTopic(skill) : priority.skillName
     const curriculum = curriculumBySkillId.get(skill.id)
     const requiredConcepts = curriculum?.requiredConcepts.join('; ')
+    const teachBackMinutes = minutes >= 15 ? 5 : 0
+    const lessonMinutes = minutes - teachBackMinutes
     tasks.push({
       title: conceptInProgress
         ? `${topic}: learn the concept`
@@ -217,16 +219,28 @@ function makeSkillTasks(
           ? `${topic}: review the method`
           : `${topic}: spaced review`,
       description: conceptInProgress
-        ? `${skill.nextStep || `Learn the core method for ${priority.skillName}.`} Required PSAT concepts: ${requiredConcepts ?? priority.skillName}. Explain the method aloud and write one rule or takeaway. Drilling waits until the concept is complete.`
-        : `${skill.nextStep || `Review one worked example for ${priority.skillName}.`} Revisit the method, explain it aloud, and write one rule or takeaway. Today’s mixed spiral is a separate assignment and may include this skill only if the concept has already been learned.`,
+        ? `${skill.nextStep || `Learn the core method for ${priority.skillName}.`} Required PSAT concepts: ${requiredConcepts ?? priority.skillName}. Complete the lesson's unscored learning checks without treating them as official PSAT drill evidence. Drilling waits until the concept is complete.`
+        : `${skill.nextStep || `Review one worked example for ${priority.skillName}.`} Revisit the method and complete the resource's unscored learning checks. Today’s mixed spiral is a separate assignment and may include this skill only if the concept has already been learned.`,
       category: conceptInProgress ? 'Learn' : 'Review',
       section: priority.section,
-      minutes,
+      minutes: lessonMinutes,
       resource: curriculum
         ? `${curriculum.resource.course} · ${curriculum.resource.unit} · ${curriculum.resource.url}`
         : 'No verified learning resource mapped yet',
       skillIds: [priority.skillId],
     })
+
+    if (teachBackMinutes) {
+      tasks.push({
+        title: `${topic}: separate teach-back verification`,
+        description: `Close the lesson and answer aid. From memory, explain the method for ${priority.skillName}, when it applies, and one common trap; then work one fresh example or describe one representative case without help. This verifies the preceding learning/review task and does not count as a drill. Success: the explanation and example are accurate without reopening the resource. Recalculate: if help is needed, keep the skill in learning/review and repair only the unclear step next time.`,
+        category: 'Review',
+        section: priority.section,
+        minutes: teachBackMinutes,
+        resource: null,
+        skillIds: [priority.skillId],
+      })
+    }
   }
 
   return tasks
@@ -550,6 +564,7 @@ export function buildRecommendedPlan(
         'When priorities are close, the plan balances Math and Reading & Writing.',
         'The score goal and days remaining determine whether the session stays narrow or covers a third priority.',
         'Learning a concept and drilling it are separate assignments.',
+        'Learning or review and teach-back verification are separate assignments.',
         'A skill marked Not yet taught or Learning receives concept work only; drilling waits until the concept is complete.',
         'A previously taught skill that needs reinforcement receives a review task and may then be drilled the same day.',
         'Every Monday-through-Friday study plan includes a 10-minute mixed spiral drawn from previously learned skills.',

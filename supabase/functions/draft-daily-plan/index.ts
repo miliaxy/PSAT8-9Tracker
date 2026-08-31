@@ -283,7 +283,8 @@ Requirements:
 - Use only the supplied coaching evidence and resources. Do not invent book pages, exercise numbers, scores, or prior performance.
 - Keep practice-test evidence and daily-drill evidence distinct when choosing priorities.
 - Respect the parent's available minutes and requested day type. The sum of task minutes must not exceed availableMinutes.
-- Prefer 2 to 4 focused assignments. Include learning or review before difficult drilling when the evidence shows a concept gap.
+- Prefer 2 to 6 focused assignments. Include learning or review before difficult drilling when the evidence shows a concept gap.
+- Keep concept learning/review and teach-back verification as separate assignments. Never use a title such as "learn and teach back" or "verification and teach-back." The study task uses the resource and its unscored learning checks; a separate 5-minute Review task closes the resource and explains the method from memory. If time cannot fit both, assign the study task only and defer verification.
 - Use only skillIds that appear in prioritySkills. It is acceptable to use an empty skillIds array.
 - Make every assignment executable: name the resource when it is known and explain what success looks like.
 - Avoid shame, diagnoses, guarantees, and comparisons with other students.

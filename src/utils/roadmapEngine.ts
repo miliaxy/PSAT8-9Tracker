@@ -450,6 +450,11 @@ export function validatePlanAgainstRoadmap(
   for (const task of draft.tasks) {
     const taskText = `${task.title} ${task.description} ${task.resource ?? ''}`
     const hasDirectResource = /^https?:\/\/\S+$/i.test(task.resource?.trim() ?? '')
+    const combinesTeachBackWithStudy = /\b(?:learn|learning|review|verification)\b\s*(?:and|&|\+|\/)\s*\bteach(?:-|\s)?back\b/i.test(task.title)
+      || /\bteach(?:-|\s)?back\b\s*(?:and|&|\+|\/)\s*\b(?:learn|learning|review|verification)\b/i.test(task.title)
+    if (combinesTeachBackWithStudy) {
+      issues.push(`“${task.title}” combines study and teach-back. Make the teach-back a separate Review assignment.`)
+    }
     const exempt = task.category === 'Reading'
       || task.category === 'Practice test'
       || task.category === 'Test strategy'
@@ -462,7 +467,7 @@ export function validatePlanAgainstRoadmap(
 
     const isSkillLessonOrReview = task.skillIds.length > 0
       && ['Learn', 'Review'].includes(task.category)
-      && !/mistake|error|correction/i.test(`${task.title} ${task.description}`)
+      && !/mistake|error|correction|teach(?:-|\s)?back/i.test(`${task.title} ${task.description}`)
     if (isSkillLessonOrReview && !hasDirectResource) {
       issues.push(`“${task.title}” needs a direct lesson or course link so the student knows exactly where to work.`)
     }
