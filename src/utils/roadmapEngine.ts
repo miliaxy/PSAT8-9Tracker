@@ -151,6 +151,26 @@ function skillPriority(skill: Skill, skills: Skill[], drills: Drill[]): RoadmapS
     reasons.unshift('high-leverage Advanced Math equation solving is not yet learned')
   }
 
+  // Use the recorded skill-level full-test accuracy, not only its broad rating.
+  // A skill can be labelled Strong while still sitting below the 95% mastery
+  // gate; that exact gap should outrank a skill that merely lacks drill data.
+  const testAccuracy = skill.practiceTestEvidence.recentAccuracy
+  if (testAccuracy !== undefined) {
+    if (testAccuracy < 60) {
+      priorityScore += 24
+      reasons.push(`${Math.round(testAccuracy)}% recent full-test accuracy`)
+    } else if (testAccuracy < 75) {
+      priorityScore += 18
+      reasons.push(`${Math.round(testAccuracy)}% recent full-test accuracy`)
+    } else if (testAccuracy < 85) {
+      priorityScore += 12
+      reasons.push(`${Math.round(testAccuracy)}% recent full-test accuracy`)
+    } else if (testAccuracy < 95) {
+      priorityScore += 6
+      reasons.push(`${Math.round(testAccuracy)}% recent full-test accuracy`)
+    }
+  }
+
   if (skill.practiceTestEvidence.rating === 'Needs work') {
     priorityScore += 24
     reasons.push('full-test evidence needs work')
