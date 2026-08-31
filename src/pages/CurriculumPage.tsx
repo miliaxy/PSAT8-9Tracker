@@ -153,7 +153,7 @@ export function CurriculumPage({ skills, resources }: CurriculumPageProps) {
       <footer className="curriculum-sources">
         <strong>Scope sources</strong>
         <a href="https://satsuite.collegeboard.org/psat-8-9/whats-on-the-test/reading" target="_blank" rel="noreferrer">College Board R&amp;W <ExternalLink size={13} /></a>
-        <a href="https://satsuite.collegeboard.org/psat-8-9/whats-on-the-test/math" target="_blank" rel="noreferrer">College Board Math <ExternalLink size={13} /></a>
+        <a href="https://satsuite.collegeboard.org/in-school-assessments/whats-on-the-test/psat-8-9/math" target="_blank" rel="noreferrer">College Board Math <ExternalLink size={13} /></a>
         <a href="https://www.khanacademy.org/test-prep/sat-reading-and-writing" target="_blank" rel="noreferrer">Khan R&amp;W <ExternalLink size={13} /></a>
         <a href="https://www.khanacademy.org/math/algebra" target="_blank" rel="noreferrer">Khan Math <ExternalLink size={13} /></a>
         <a href="https://www.ixl.com/ela/grade-8/skills" target="_blank" rel="noreferrer">IXL R&amp;W alternatives <ExternalLink size={13} /></a>

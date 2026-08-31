@@ -241,7 +241,7 @@ export function CoachingRulesPage() {
         </div>
         <nav aria-label="Official PSAT 8/9 references">
           <a href="https://satsuite.collegeboard.org/psat-8-9/whats-on-the-test/reading" target="_blank" rel="noreferrer">Reading &amp; Writing <ExternalLink size={13} /></a>
-          <a href="https://satsuite.collegeboard.org/psat-8-9/whats-on-the-test/math" target="_blank" rel="noreferrer">Math <ExternalLink size={13} /></a>
+          <a href="https://satsuite.collegeboard.org/in-school-assessments/whats-on-the-test/psat-8-9/math" target="_blank" rel="noreferrer">Math <ExternalLink size={13} /></a>
           <a href="https://satsuite.collegeboard.org/psat-8-9/whats-on-the-test/structure" target="_blank" rel="noreferrer">Test structure <ExternalLink size={13} /></a>
         </nav>
       </section>

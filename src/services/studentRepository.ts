@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { curriculumBySkillId } from '../data/curriculumMap'
 import type {
   Book,
   CoachingStatus,
@@ -46,6 +47,11 @@ function value<T>(row: Row, key: string) {
 
 function optionalNumber(input: unknown) {
   return input === null || input === undefined ? undefined : Number(input)
+}
+
+function normalizeDomain(section: Section, domain: unknown) {
+  const value = String(domain)
+  return section === 'Math' && value === 'Geometry and Trigonometry' ? 'Geometry' : value
 }
 
 function localDateKey(date = new Date()) {
@@ -136,39 +142,43 @@ export async function loadStudentDashboard(student: Student): Promise<DashboardB
   if (firstError) throw new Error(firstError.message)
 
   const progressBySkill = new Map(rows(skillProgressResult.data).map((row) => [String(row.skill_id), row]))
-  const skills: Skill[] = rows(skillCatalogResult.data).map((catalog) => {
-    const progress = progressBySkill.get(String(catalog.id))
-    const practiceAttempted = progress ? Number(progress.practice_test_attempted) : 0
-    const practiceCorrect = progress ? Number(progress.practice_test_correct) : 0
-    const drillAttempted = progress ? Number(progress.drill_attempted) : 0
-    return {
-      id: String(catalog.id),
-      section: value<Section>(catalog, 'section'),
-      domain: String(catalog.domain),
-      name: String(catalog.name),
-      description: String(catalog.description),
-      conceptState: (progress?.concept_state || 'not_yet_taught') as ConceptState,
-      practiceTestEvidence: {
-        rating: (progress?.practice_test_rating || 'No evidence') as EvidenceRating,
-        totalAttempted: practiceAttempted,
-        totalCorrect: practiceCorrect,
-        recentAccuracy: practiceAttempted ? Math.round((practiceCorrect / practiceAttempted) * 100) : undefined,
-        sampleSize: practiceAttempted,
-      },
-      drillEvidence: {
-        rating: (progress?.drill_rating || 'No evidence') as EvidenceRating,
-        totalAttempted: drillAttempted,
-        totalCorrect: progress ? Number(progress.drill_correct) : 0,
-        recentAccuracy: optionalNumber(progress?.recent_drill_accuracy),
-        sampleSize: drillAttempted,
-      },
-      trend: (progress?.trend || 'steady') as Trend,
-      combinedStatus: (progress?.combined_status || 'Not started') as CoachingStatus,
-      lastPracticed: progress?.last_practiced ? String(progress.last_practiced) : undefined,
-      khanProgress: optionalNumber(progress?.khan_progress),
-      nextStep: progress ? String(progress.next_step) : 'Not scheduled yet.',
-    }
-  })
+  const skills: Skill[] = rows(skillCatalogResult.data)
+    .filter((catalog) => curriculumBySkillId.has(String(catalog.id)))
+    .map((catalog) => {
+      const progress = progressBySkill.get(String(catalog.id))
+      const practiceAttempted = progress ? Number(progress.practice_test_attempted) : 0
+      const practiceCorrect = progress ? Number(progress.practice_test_correct) : 0
+      const drillAttempted = progress ? Number(progress.drill_attempted) : 0
+      const section = value<Section>(catalog, 'section')
+      const curriculum = curriculumBySkillId.get(String(catalog.id))!
+      return {
+        id: String(catalog.id),
+        section,
+        domain: curriculum.domain,
+        name: String(catalog.name),
+        description: String(catalog.description),
+        conceptState: (progress?.concept_state || 'not_yet_taught') as ConceptState,
+        practiceTestEvidence: {
+          rating: (progress?.practice_test_rating || 'No evidence') as EvidenceRating,
+          totalAttempted: practiceAttempted,
+          totalCorrect: practiceCorrect,
+          recentAccuracy: practiceAttempted ? Math.round((practiceCorrect / practiceAttempted) * 100) : undefined,
+          sampleSize: practiceAttempted,
+        },
+        drillEvidence: {
+          rating: (progress?.drill_rating || 'No evidence') as EvidenceRating,
+          totalAttempted: drillAttempted,
+          totalCorrect: progress ? Number(progress.drill_correct) : 0,
+          recentAccuracy: optionalNumber(progress?.recent_drill_accuracy),
+          sampleSize: drillAttempted,
+        },
+        trend: (progress?.trend || 'steady') as Trend,
+        combinedStatus: (progress?.combined_status || 'Not started') as CoachingStatus,
+        lastPracticed: progress?.last_practiced ? String(progress.last_practiced) : undefined,
+        khanProgress: optionalNumber(progress?.khan_progress),
+        nextStep: progress ? String(progress.next_step) : 'Not scheduled yet.',
+      }
+    })
 
   const domainRows = rows(testDomainsResult.data)
   const mistakeRows = rows(testMistakesResult.data)
@@ -187,25 +197,31 @@ export async function loadStudentDashboard(student: Student): Promise<DashboardB
     mathCorrect: Number(test.math_correct),
     mathIncorrect: Number(test.math_incorrect),
     reliabilityNote: test.reliability_note ? String(test.reliability_note) : undefined,
-    domainPerformance: domainRows.filter((row) => row.test_id === test.id).map((row) => ({
-      domain: String(row.domain),
-      section: value<Section>(row, 'section'),
-      correct: Number(row.correct),
-      total: Number(row.total),
-    })),
-    mistakes: mistakeRows.filter((row) => row.test_id === test.id).map((row) => ({
-      id: String(row.id),
-      practiceTestId: String(test.id),
-      questionNumber: Number(row.question_number),
-      module: row.module ? Number(row.module) as 1 | 2 : undefined,
-      section: value<Section>(row, 'section'),
-      domain: String(row.domain),
-      skillTopic: String(row.skill_topic),
-      classification: value<ErrorClassification>(row, 'classification'),
-      userNote: row.user_note ? String(row.user_note) : undefined,
-      recommendedAction: String(row.recommended_action),
-      reviewed: Boolean(row.reviewed),
-    })),
+    domainPerformance: domainRows.filter((row) => row.test_id === test.id).map((row) => {
+      const section = value<Section>(row, 'section')
+      return {
+        domain: normalizeDomain(section, row.domain),
+        section,
+        correct: Number(row.correct),
+        total: Number(row.total),
+      }
+    }),
+    mistakes: mistakeRows.filter((row) => row.test_id === test.id).map((row) => {
+      const section = value<Section>(row, 'section')
+      return {
+        id: String(row.id),
+        practiceTestId: String(test.id),
+        questionNumber: Number(row.question_number),
+        module: row.module ? Number(row.module) as 1 | 2 : undefined,
+        section,
+        domain: normalizeDomain(section, row.domain),
+        skillTopic: String(row.skill_topic),
+        classification: value<ErrorClassification>(row, 'classification'),
+        userNote: row.user_note ? String(row.user_note) : undefined,
+        recommendedAction: String(row.recommended_action),
+        reviewed: Boolean(row.reviewed),
+      }
+    }),
     strategyMetrics: {
       blanks: Number(test.blanks),
       pacingIssues: Number(test.pacing_issues),
@@ -217,30 +233,33 @@ export async function loadStudentDashboard(student: Student): Promise<DashboardB
   }))
 
   const drillMistakes = rows(drillMistakesResult.data)
-  const drills: Drill[] = rows(drillsResult.data).map((drill) => ({
-    id: String(drill.id),
-    taskId: drill.task_id ? String(drill.task_id) : undefined,
-    skillId: drill.skill_id ? String(drill.skill_id) : undefined,
-    date: String(drill.drill_date),
-    section: value<Section>(drill, 'section'),
-    domain: String(drill.domain),
-    skillTopic: String(drill.skill_topic),
-    difficulty: value<Difficulty>(drill, 'difficulty'),
-    source: String(drill.source),
-    attempted: Number(drill.attempted),
-    correct: Number(drill.correct),
-    incorrect: Number(drill.incorrect),
-    accuracy: Number(drill.accuracy),
-    timeLimitMinutes: optionalNumber(drill.time_limit_minutes),
-    timeSpentMinutes: optionalNumber(drill.time_spent_minutes),
-    notes: drill.notes ? String(drill.notes) : undefined,
-    mistakes: drillMistakes.filter((row) => row.drill_id === drill.id).map((row) => ({
-      id: String(row.id),
-      questionNumber: optionalNumber(row.question_number),
-      classification: value<ErrorClassification>(row, 'classification'),
-      note: row.note ? String(row.note) : undefined,
-    })),
-  }))
+  const drills: Drill[] = rows(drillsResult.data).map((drill) => {
+    const section = value<Section>(drill, 'section')
+    return {
+      id: String(drill.id),
+      taskId: drill.task_id ? String(drill.task_id) : undefined,
+      skillId: drill.skill_id ? String(drill.skill_id) : undefined,
+      date: String(drill.drill_date),
+      section,
+      domain: normalizeDomain(section, drill.domain),
+      skillTopic: String(drill.skill_topic),
+      difficulty: value<Difficulty>(drill, 'difficulty'),
+      source: String(drill.source),
+      attempted: Number(drill.attempted),
+      correct: Number(drill.correct),
+      incorrect: Number(drill.incorrect),
+      accuracy: Number(drill.accuracy),
+      timeLimitMinutes: optionalNumber(drill.time_limit_minutes),
+      timeSpentMinutes: optionalNumber(drill.time_spent_minutes),
+      notes: drill.notes ? String(drill.notes) : undefined,
+      mistakes: drillMistakes.filter((row) => row.drill_id === drill.id).map((row) => ({
+        id: String(row.id),
+        questionNumber: optionalNumber(row.question_number),
+        classification: value<ErrorClassification>(row, 'classification'),
+        note: row.note ? String(row.note) : undefined,
+      })),
+    }
+  })
 
   const planRows = rows(plansResult.data)
   let studyPlans: StudyPlan[] = []
@@ -326,6 +345,11 @@ export async function loadStudentDashboard(student: Student): Promise<DashboardB
   const planPayload = programPlanRow?.plan && typeof programPlanRow.plan === 'object'
     ? programPlanRow.plan as { principle?: unknown; blocks?: unknown }
     : null
+  const activeSkillIds = new Set(skills.map((skill) => skill.id))
+  const programPlanBlocks = Array.isArray(planPayload?.blocks)
+    ? (planPayload.blocks as ProgramPlan['blocks']).filter((block) =>
+        Array.isArray(block.skillIds) && block.skillIds.every((skillId) => activeSkillIds.has(skillId)))
+    : []
   const programPlan: ProgramPlan | undefined = programPlanRow && planPayload
     ? {
         id: String(programPlanRow.id),
@@ -336,7 +360,7 @@ export async function loadStudentDashboard(student: Student): Promise<DashboardB
         conceptDeadline: String(programPlanRow.concept_deadline),
         status: value<ProgramPlan['status']>(programPlanRow, 'status'),
         principle: typeof planPayload.principle === 'string' ? planPayload.principle : '',
-        blocks: Array.isArray(planPayload.blocks) ? planPayload.blocks as ProgramPlan['blocks'] : [],
+        blocks: programPlanBlocks,
         publishedAt: programPlanRow.published_at ? String(programPlanRow.published_at) : undefined,
         updatedAt: String(programPlanRow.updated_at),
       }

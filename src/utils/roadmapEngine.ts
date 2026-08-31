@@ -24,7 +24,6 @@ const domainWeights: Record<string, number> = {
   'Advanced Math': 20,
   'Problem-Solving and Data Analysis': 25,
   Geometry: 12.5,
-  'Geometry and Trigonometry': 12.5,
 }
 
 const phaseCopy: Record<RoadmapPhaseId, Pick<RoadmapPhase, 'label' | 'objective' | 'exitCriteria'>> = {
@@ -145,6 +144,11 @@ function skillPriority(skill: Skill, skills: Skill[], drills: Drill[]): RoadmapS
   } else if (skill.conceptState === 'needs_review') {
     priorityScore += 30
     reasons.push('learned method needs review')
+  }
+
+  if (skill.id === 'math-nonlinear-equations' && ['not_yet_taught', 'learning'].includes(skill.conceptState)) {
+    priorityScore += 8
+    reasons.unshift('high-leverage Advanced Math equation solving is not yet learned')
   }
 
   if (skill.practiceTestEvidence.rating === 'Needs work') {
