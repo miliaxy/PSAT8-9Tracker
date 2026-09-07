@@ -10,6 +10,8 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { TaskCard } from '../components/TaskCard'
+import { PacketGroup } from '../components/PacketGroup'
+import { groupPacketTasks } from '../utils/packetGroups'
 import { EmptyState, PageHeader, ProgressBar, StatCard } from '../components/ui'
 import type { DailyTask, Drill, PracticeTest, Skill, Student, StudyPlan } from '../types/models'
 import { daysBetween, formatDate, formatLongDate } from '../utils/format'
@@ -178,7 +180,8 @@ export function TodayPage({ student, tasks, plan, practiceTests, drills, skills,
             <span className="panel__total"><Clock3 size={15} /> {totalMinutes} min</span>
           </div>
           <div className="task-list">
-            {tasks.map((task) => (
+            {groupPacketTasks(tasks).map((group) => {
+              const entries = group.map(({ task }) => (
               <TaskCard
                 key={task.id}
                 task={task}
@@ -190,7 +193,11 @@ export function TodayPage({ student, tasks, plan, practiceTests, drills, skills,
                 practiceTestResult={practiceTests.find((test) => test.taskId === task.id)}
                 onResultSaved={canRecordResults ? onResultSaved : undefined}
               />
-            ))}
+              ))
+              return group.length > 1
+                ? <PacketGroup key={group[0].task.id} tasks={group.map(({ task }) => task)}>{entries}</PacketGroup>
+                : entries
+            })}
             {!tasks.length && <EmptyState title="Nothing assigned today" description="Use View full week to check upcoming work or enjoy the planned rest day." />}
           </div>
         </section>

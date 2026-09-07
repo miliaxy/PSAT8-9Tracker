@@ -1,6 +1,8 @@
 import { CalendarCheck2, ChevronDown, ChevronLeft, ChevronRight, Clock3, Expand, LocateFixed, Minimize2, Printer, RotateCcw, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { TaskCard } from '../components/TaskCard'
+import { PacketGroup } from '../components/PacketGroup'
+import { groupPacketTasks } from '../utils/packetGroups'
 import { PageHeader, ProgressBar } from '../components/ui'
 import type { DayType, Drill, PracticeTest, Skill, StudyPlan } from '../types/models'
 import { formatDate } from '../utils/format'
@@ -189,7 +191,8 @@ export function WeekPage({ plans, initialPlanId, completedTaskIds, onToggleTask,
                 {isOpen && (
                   <div className="week-day__details" id={`week-details-${day.date}`}>
                     {day.tasks.length ? (
-                      day.tasks.map((task) => (
+                      groupPacketTasks(day.tasks).map((group) => {
+                        const entries = group.map(({ task }) => (
                         <TaskCard
                           key={task.id}
                           task={task}
@@ -202,7 +205,11 @@ export function WeekPage({ plans, initialPlanId, completedTaskIds, onToggleTask,
                           practiceTestResult={practiceTests.find((test) => test.taskId === task.id)}
                           onResultSaved={onResultSaved}
                         />
-                      ))
+                        ))
+                        return group.length > 1
+                          ? <PacketGroup key={group[0].task.id} tasks={group.map(({ task }) => task)}>{entries}</PacketGroup>
+                          : entries
+                      })
                     ) : (
                       <div className="rest-day-copy">
                         <Sparkles size={20} />

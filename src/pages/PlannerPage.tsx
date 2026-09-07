@@ -16,6 +16,8 @@ import {
   Trash2,
 } from 'lucide-react'
 import { PageHeader } from '../components/ui'
+import { PacketGroup } from '../components/PacketGroup'
+import { groupPacketTasks } from '../utils/packetGroups'
 import {
   createBlankPlanningDraft,
   createRecommendedPlanningDraft,
@@ -411,7 +413,8 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
               </div>
 
               <div className="planner-task-list">
-                {record.draft.tasks.map((task, index) => (
+                {groupPacketTasks(record.draft.tasks).map((group) => {
+                  const entries = group.map(({ task, index }) => (
                   <article className="planner-task" key={`${record.id}-${index}`}>
                     <div className="planner-task__number">{index + 1}</div>
                     <div className="planner-task__fields">
@@ -429,7 +432,11 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
                     </div>
                     {!published && record.draft.tasks.length > 1 && <button className="planner-task__remove" aria-label={`Remove assignment ${index + 1}`} onClick={() => updateContent({ tasks: record.draft.tasks.filter((_, taskIndex) => taskIndex !== index) })}><Trash2 size={16} /></button>}
                   </article>
-                ))}
+                  ))
+                  return group.length > 1
+                    ? <PacketGroup key={group[0].index} tasks={group.map(({ task }) => task)} editing>{entries}</PacketGroup>
+                    : entries
+                })}
               </div>
 
               {!published && (

@@ -15,4 +15,8 @@ For private daily planning, the governing workflow is:
 9. State the evidence-based reason, success criterion, and next recalculation signal for each plan. Say when evidence is missing.
 10. Save private plans as drafts first. A parent explicitly publishes with the Publish homework button; that click is the approval step and no separate review checkbox is required. Never publish automatically when a draft is created.
 
+Student-facing R&W instructions must use short action bullets. Keep detailed evidence, question-ID audit, and coaching rationale in parent context rather than repeating long paragraphs. Present a shared mixed packet as one visible item while preserving its separate skill-level result records. Keep learning, drilling, and mistake review distinct.
+
+After every drill, require review of wrong and guessed-correct answers: original thinking, the specific cause of the mistake, text/data/grammar evidence for the correction, and a concrete next-time action. Use the family's reusable R&W mistake-review worksheet where available; save a completed copy rather than overwriting the blank master. A vague label such as "careless" is not a sufficient explanation. Use unresolved errors and repeated causes to choose subsequent practice; remembering a previous answer is not mastery.
+
 Before finishing a roadmap or plan change, run the project type check, lint, and GitHub Pages build. Preserve unrelated worktree changes.

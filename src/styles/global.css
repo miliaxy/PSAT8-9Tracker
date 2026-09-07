@@ -909,6 +909,14 @@ strong {
   min-width: 0;
 }
 
+.packet-group { padding: 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface, #fff); }
+.packet-group h3 { margin: 0 0 12px; }
+.packet-group ul, .task-instructions { padding-left: 20px; color: var(--ink-soft); line-height: 1.6; }
+.packet-group li, .task-instructions li { margin-bottom: 5px; }
+.packet-group details { margin-top: 16px; }
+.packet-group summary { cursor: pointer; font-weight: 600; padding: 8px 0; }
+.packet-group__entries { display: grid; gap: 12px; padding-top: 12px; }
+
 .task-card__title-row {
   display: flex;
   justify-content: space-between;

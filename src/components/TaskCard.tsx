@@ -37,7 +37,7 @@ const categoryMeta: Record<TaskCategory, { icon: typeof BookOpen; tone: string }
 }
 
 function ResourceMeta({ resource }: { resource: string }) {
-  const links = [...resource.matchAll(/(?:(Lesson|Worked example):\s*)?(https?:\/\/[^\s|]+)/gi)]
+  const links = [...resource.matchAll(/(?:(Lesson|Worked example|Template|Answer key|Packet):\s*)?(https?:\/\/[^\s|]+)/gi)]
 
   if (!links.length) return <span><ExternalLink size={12} /> {resource}</span>
 
@@ -84,7 +84,9 @@ export function TaskCard({ task, completed, onToggle, compact = false, studentId
           </div>
           <span className="task-card__time"><Clock3 size={14} /> {task.minutes} min</span>
         </div>
-        {!compact && <p>{task.description}</p>}
+        {!compact && (task.description.trim().startsWith('•') || task.description.trim().startsWith('- ')
+          ? <ul className="task-instructions">{task.description.split('\n').filter((line) => line.trim()).map((line, index) => <li key={index}>{line.replace(/^\s*[•-]\s*/, '')}</li>)}</ul>
+          : <p>{task.description}</p>)}
         {!compact && (
           <div className="task-card__meta">
             {task.section && <span>{task.section}</span>}
