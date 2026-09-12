@@ -18,7 +18,7 @@ export function PacketGroup({ tasks, children, editing = false }: {
       </ul>
       <a href={tasks[0].resource!} target="_blank" rel="noreferrer">Open question packet (new tab)</a>
       <details>
-        <summary>{editing ? 'Edit instructions and skill result entries' : 'Record results by skill'}</summary>
+        <summary>{editing ? 'Edit instructions and skill result entries' : 'Results, notes & feedback by skill'}</summary>
         <div className="packet-group__entries">{children}</div>
       </details>
     </section>

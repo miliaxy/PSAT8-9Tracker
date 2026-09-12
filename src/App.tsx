@@ -3,6 +3,7 @@ import { LogOut, RefreshCw, RotateCcw, ShieldCheck, UserRoundPlus, X } from 'luc
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { AuthScreen } from './auth/AuthScreen'
 import { AppShell, type ViewId } from './components/AppShell'
+import { AssignmentNotesProvider, AssignmentNotesInbox } from './components/AssignmentNotes'
 import { demoDashboardBundle } from './data/demoData'
 import { supabase } from './lib/supabase'
 import { loadAccessibleStudents, loadStudentDashboard, setTaskCompletion } from './services/studentRepository'
@@ -17,7 +18,7 @@ const BooksPage = lazy(() => import('./pages/BooksPage').then((module) => ({ def
 const CoachingRulesPage = lazy(() => import('./pages/CoachingRulesPage').then((module) => ({ default: module.CoachingRulesPage })))
 const PlannerPage = lazy(() => import('./pages/PlannerPage').then((module) => ({ default: module.PlannerPage })))
 
-const validViews: ViewId[] = ['today', 'roadmap', 'week', 'scores', 'reading-writing', 'math', 'books', 'how-it-works', 'planner']
+const validViews: ViewId[] = ['today', 'roadmap', 'week', 'scores', 'reading-writing', 'math', 'books', 'how-it-works', 'planner', 'notes']
 const completionStorageKey = 'psat-pathway-demo-completed-tasks'
 
 function getInitialView(allowPlanner = false): ViewId {
@@ -182,6 +183,8 @@ function Dashboard({ bundle, demoMode, onDataChanged }: { bundle: DashboardBundl
         return <BooksPage books={bundle.books} resources={bundle.learningResources} />
       case 'how-it-works':
         return <CoachingRulesPage />
+      case 'notes':
+        return <AssignmentNotesInbox />
       case 'planner':
         return canPlan
           ? <PlannerPage student={bundle.student} skills={bundle.skills} drills={bundle.drills} practiceTests={bundle.practiceTests} onPublished={onDataChanged ?? (() => undefined)} />
@@ -190,6 +193,7 @@ function Dashboard({ bundle, demoMode, onDataChanged }: { bundle: DashboardBundl
   }
 
   return (
+    <AssignmentNotesProvider key={bundle.student.id} studentId={bundle.student.id} enabled={!demoMode} canReview={canPlan}>
     <AppShell
       activeView={activeView}
       onNavigate={navigate}
@@ -214,6 +218,7 @@ function Dashboard({ bundle, demoMode, onDataChanged }: { bundle: DashboardBundl
         </div>
       )}
     </AppShell>
+    </AssignmentNotesProvider>
   )
 }
 

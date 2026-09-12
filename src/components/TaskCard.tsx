@@ -10,6 +10,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { useState } from 'react'
+import { TaskNotes } from './AssignmentNotes'
 import { DrillResultForm } from './DrillResultForm'
 import { MixedDrillResultForm } from './MixedDrillResultForm'
 import { PracticeTestResultForm } from './PracticeTestResultForm'
@@ -112,6 +113,7 @@ export function TaskCard({ task, completed, onToggle, compact = false, studentId
           </div>
         )}
       </div>
+      <div className="task-card__result-form"><TaskNotes taskId={task.id} /></div>
       {showResultForm && studentId && onResultSaved && (
         <div className="task-card__result-form" id={resultFormId}>
           {task.category === 'Practice test'

@@ -15,6 +15,8 @@ import {
   Sparkles,
   Trash2,
 } from 'lucide-react'
+import { AssignmentNotesInbox, useAssignmentNotes } from '../components/AssignmentNotes'
+import { loadAssignmentNotes } from '../services/assignmentNotes'
 import { PageHeader } from '../components/ui'
 import { PacketGroup } from '../components/PacketGroup'
 import { groupPacketTasks } from '../utils/packetGroups'
@@ -101,6 +103,7 @@ function validateDraft(record: PlanningDraftRecord | null, availableMinutes: num
 }
 
 export function PlannerPage({ student, skills, drills, practiceTests, onPublished }: PlannerPageProps) {
+  const feedback = useAssignmentNotes()
   const [targetDate, setTargetDate] = useState(() => addDays(localDateKey(), 1))
   const [inputs, setInputs] = useState<ParentPlanningInputs>(initialInputs)
   const [record, setRecord] = useState<PlanningDraftRecord | null>(null)
@@ -139,7 +142,8 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
     () => record ? validatePlanAgainstRoadmap(record.draft, roadmap, skills, drills, targetDate) : [],
     [record, roadmap, skills, drills, targetDate],
   )
-  const validationError = validateDraft(record, inputs.availableMinutes) ?? roadmapIssues[0] ?? null
+  const feedbackIssue = feedback.loading ? 'Wait for assignment feedback to load.' : (feedback.error || null) ?? (feedback.notes.some(note => !note.reviewed_at) ? 'Read new assignment notes and save a planning response before publishing.' : null)
+  const validationError = feedbackIssue ?? validateDraft(record, inputs.availableMinutes) ?? roadmapIssues[0] ?? null
   const published = record?.status === 'published'
 
   const changeTargetDate = (nextDate: string) => {
@@ -165,6 +169,7 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
   }
 
   const createRecommended = async () => {
+    if (feedbackIssue) { setError(feedbackIssue); return }
     const recommendation = buildRecommendedPlan(student, skills, drills, practiceTests, targetDate, inputs)
     const recommendedInputs = { ...inputs, dayType: recommendation.draft.dayType }
     const nextRecord = await run('recommend', () => createRecommendedPlanningDraft(
@@ -172,7 +177,7 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
       targetDate,
       recommendedInputs,
       recommendation.draft,
-      recommendation.evidenceSummary,
+      { ...recommendation.evidenceSummary, assignmentFeedback: feedback.notes.map(note => ({ id: note.id, taskDate: note.task_date, taskTitle: note.task_title, kind: note.kind, body: note.body, planningResponse: note.planning_response })) },
     ))
     if (!nextRecord) return
     setRecord(nextRecord)
@@ -209,6 +214,7 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
       draft: { ...record.draft, dayType: inputs.dayType },
       evidenceSummary: {
         ...record.evidenceSummary,
+        assignmentFeedback: feedback.notes.map(note => ({ id: note.id, taskDate: note.task_date, taskTitle: note.task_title, kind: note.kind, body: note.body, planningResponse: note.planning_response })),
         roadmap: {
           phaseId: roadmap.activePhase.id,
           phaseLabel: roadmap.activePhase.label,
@@ -236,6 +242,7 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
       draft: { ...record.draft, dayType: inputs.dayType },
       evidenceSummary: {
         ...record.evidenceSummary,
+        assignmentFeedback: feedback.notes.map(note => ({ id: note.id, taskDate: note.task_date, taskTitle: note.task_title, kind: note.kind, body: note.body, planningResponse: note.planning_response })),
         roadmap: {
           phaseId: roadmap.activePhase.id,
           phaseLabel: roadmap.activePhase.label,
@@ -251,7 +258,7 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
     }
     const saved = await run('publish', () => savePlanningDraft(recordToSave))
     if (!saved) return
-    const publishedDate = await run('publish', () => publishPlanningDraft(saved.id))
+    const publishedDate = await run('publish', async () => { const latest = await loadAssignmentNotes(student.id); if (latest.some(note => !note.reviewed_at)) { await feedback.refresh(); throw new Error('New assignment feedback arrived. Review it before publishing.'); } return publishPlanningDraft(saved.id) })
     if (!publishedDate) return
     setRecord({ ...saved, status: 'published', publishedAt: new Date().toISOString() })
     setMessage(`Homework for ${formatDate(publishedDate)} is published. ${student.firstName} will see it after refreshing the dashboard.`)
@@ -285,6 +292,7 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
         <div className="planner-roadmap-link__checkpoint"><Flag size={14} /><span>Checkpoint</span><strong>{roadmap.activeMilestone.scoreCheckpoint}</strong></div>
       </section>
 
+      <AssignmentNotesInbox planning />
       <div className="planner-layout">
         <aside className="panel planner-setup">
           <div className="panel__header panel__header--compact">

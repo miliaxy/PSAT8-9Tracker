@@ -228,6 +228,7 @@ export interface RecommendationEvidenceItem {
 }
 
 export interface RecommendationEvidenceSummary {
+  assignmentFeedback?: { id: string; taskDate: string; taskTitle: string; kind: string; body: string; planningResponse: string | null }[]
   source: 'rules-v1'
   generatedAt: string
   daysRemaining: number

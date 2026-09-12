@@ -16,7 +16,7 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import type { Student } from '../types/models'
 
-export type ViewId = 'today' | 'roadmap' | 'week' | 'scores' | 'reading-writing' | 'math' | 'books' | 'how-it-works' | 'planner'
+export type ViewId = 'today' | 'roadmap' | 'week' | 'scores' | 'reading-writing' | 'math' | 'books' | 'how-it-works' | 'planner' | 'notes'
 
 interface AppShellProps {
   activeView: ViewId
@@ -38,6 +38,7 @@ const navItems: { id: ViewId; label: string; shortLabel: string; icon: typeof La
   { id: 'math', label: 'Math', shortLabel: 'Math', icon: Calculator },
   { id: 'books', label: 'Books & Resources', shortLabel: 'Books', icon: BookOpen },
   { id: 'how-it-works', label: 'How Coaching Works', shortLabel: 'Rules', icon: ListChecks },
+  { id: 'notes', label: 'Assignment notes', shortLabel: 'Notes', icon: ClipboardPenLine },
   { id: 'planner', label: 'Planning Room', shortLabel: 'Plan', icon: ClipboardPenLine },
 ]
 
@@ -53,6 +54,7 @@ const viewTitles: Record<ViewId, string> = {
   books: 'Books & Resources',
   'how-it-works': 'How Coaching Works',
   planner: 'Planning Room',
+  notes: 'Assignment notes',
 }
 
 export function AppShell({ activeView, onNavigate, student, dataMode, showPlanner = false, accountLabel, onSignOut, children }: AppShellProps) {

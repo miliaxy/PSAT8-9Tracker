@@ -3558,3 +3558,17 @@ strong {
     animation-iteration-count: 1 !important;
   }
 }
+
+.task-notes { margin-top: 8px; border-top: 1px solid var(--border, #e5e7eb); padding-top: 10px; }
+.task-notes summary { display: flex; align-items: center; gap: 7px; cursor: pointer; color: var(--violet); font-weight: 600; }
+.task-notes p, .assignment-notes-inbox p { font-size: 13px; line-height: 1.5; }
+.task-notes form, .assignment-note form { display: grid; gap: 10px; margin-top: 12px; }
+.task-notes textarea, .assignment-note textarea { width: 100%; resize: vertical; min-height: 90px; }
+.assignment-note { padding: 12px; margin: 10px 0; border-radius: 10px; background: #f5f7fa; overflow-wrap: anywhere; }
+.assignment-note p { white-space: pre-wrap; }
+.assignment-note small { color: var(--muted); font-size: 12px; }
+.assignment-note__response { border-left: 3px solid #499b8f; padding: 8px 12px; margin: 10px 0; background: white; }
+.assignment-notes-inbox { margin-bottom: 20px; padding: 20px; }
+.assignment-notes-inbox article { margin: 18px 0; }
+.assignment-notes-inbox h3 { font-size: 14px; overflow-wrap: anywhere; }
+.notes-filter { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; }
