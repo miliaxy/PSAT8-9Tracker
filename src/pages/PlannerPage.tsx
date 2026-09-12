@@ -177,7 +177,7 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
       targetDate,
       recommendedInputs,
       recommendation.draft,
-      { ...recommendation.evidenceSummary, assignmentFeedback: feedback.notes.map(note => ({ id: note.id, taskDate: note.task_date, taskTitle: note.task_title, kind: note.kind, body: note.body, planningResponse: note.planning_response })) },
+      { ...recommendation.evidenceSummary, assignmentFeedback: feedback.notes.map(note => ({ id: note.id, taskDate: note.task_date, taskTitle: note.task_title, kind: note.kind, effectivenessRating: note.effectiveness_rating, body: note.body, planningResponse: note.planning_response })) },
     ))
     if (!nextRecord) return
     setRecord(nextRecord)
@@ -214,7 +214,7 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
       draft: { ...record.draft, dayType: inputs.dayType },
       evidenceSummary: {
         ...record.evidenceSummary,
-        assignmentFeedback: feedback.notes.map(note => ({ id: note.id, taskDate: note.task_date, taskTitle: note.task_title, kind: note.kind, body: note.body, planningResponse: note.planning_response })),
+        assignmentFeedback: feedback.notes.map(note => ({ id: note.id, taskDate: note.task_date, taskTitle: note.task_title, kind: note.kind, effectivenessRating: note.effectiveness_rating, body: note.body, planningResponse: note.planning_response })),
         roadmap: {
           phaseId: roadmap.activePhase.id,
           phaseLabel: roadmap.activePhase.label,
@@ -242,7 +242,7 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
       draft: { ...record.draft, dayType: inputs.dayType },
       evidenceSummary: {
         ...record.evidenceSummary,
-        assignmentFeedback: feedback.notes.map(note => ({ id: note.id, taskDate: note.task_date, taskTitle: note.task_title, kind: note.kind, body: note.body, planningResponse: note.planning_response })),
+        assignmentFeedback: feedback.notes.map(note => ({ id: note.id, taskDate: note.task_date, taskTitle: note.task_title, kind: note.kind, effectivenessRating: note.effectiveness_rating, body: note.body, planningResponse: note.planning_response })),
         roadmap: {
           phaseId: roadmap.activePhase.id,
           phaseLabel: roadmap.activePhase.label,

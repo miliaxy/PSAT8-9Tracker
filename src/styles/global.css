@@ -3572,3 +3572,6 @@ strong {
 .assignment-notes-inbox article { margin: 18px 0; }
 .assignment-notes-inbox h3 { font-size: 14px; overflow-wrap: anywhere; }
 .notes-filter { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; }
+
+.assignment-rating { border: 1px solid var(--border, #e5e7eb); border-radius: 10px; padding: 12px; margin: 12px 0; }
+.assignment-rating h4 { margin: 0 0 10px; }
