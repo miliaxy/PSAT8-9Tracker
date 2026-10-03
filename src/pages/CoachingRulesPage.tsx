@@ -78,7 +78,7 @@ const ruleGroups = [
     tone: 'gold',
     rules: [
       'Easy and Medium work comes before Hard work.',
-      'Hard questions unlock only after recent Easy/Medium accuracy reaches at least 95%.',
+      'Hard questions below 95% recent Easy/Medium accuracy trigger a warning, not a publication block.',
       'The threshold rewards reliable method and execution—not a single lucky result.',
     ],
   },

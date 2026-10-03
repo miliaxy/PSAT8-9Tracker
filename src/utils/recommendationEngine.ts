@@ -309,7 +309,7 @@ function mixedSpiralTask(
 
   return {
     title: `Daily mixed-skill spiral: ${questionCount} questions`,
-    description: `Complete one previously unused official PSAT 8/9 question for each linked skill: ${skillsList}. Use exactly ${difficultyMix} questions and one 10-minute timer for the full set. Keep College Board's Exclude Active Questions filter turned on. This drill rotates previously learned material; it does not include a concept that is still being learned. Review every miss afterward and record the result against the skill for that question. ${allHardReady ? 'Every linked skill has earned Hard work through at least 95% recent Easy/Medium accuracy.' : 'Hard questions remain locked until every linked skill reaches at least 95% on recent Easy/Medium work.'}`,
+    description: `Complete one previously unused official PSAT 8/9 question for each linked skill: ${skillsList}. Use exactly ${difficultyMix} questions and one 10-minute timer for the full set. Keep College Board's Exclude Active Questions filter turned on. This drill rotates previously learned material; it does not include a concept that is still being learned. Review every miss afterward and record the result against the skill for that question. ${allHardReady ? 'Every linked skill has earned Hard work through at least 95% recent Easy/Medium accuracy.' : 'Hard work is recommended after every linked skill reaches at least 95% on recent Easy/Medium work; parents may choose a challenge earlier.'}`,
     category: 'Drill',
     section: null,
     minutes: 10,
@@ -570,7 +570,7 @@ export function buildRecommendedPlan(
         'Every Monday-through-Friday study plan includes a 10-minute mixed spiral drawn from previously learned skills.',
         'The mixed spiral rotates skills across Reading & Writing and Math instead of repeating only the day’s focus skill.',
         'Mixed-drill results are recorded by skill so the evidence remains accurate.',
-        'Hard questions stay locked until recent Easy/Medium work reaches at least 95%.',
+        'Warn before assigning Hard below 95% recent Easy/Medium accuracy; parents may still publish.',
         'Daily drills never use active College Board practice-test questions; Exclude Active Questions stays on.',
         'Drill timers use PSAT 8/9 section pacing, with faster Easy/Medium targets that bank time for Hard questions.',
         'Assigned drill minutes include answering time only; afterward, every missed question must be reviewed and its cause recorded.',

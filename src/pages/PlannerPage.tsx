@@ -138,8 +138,8 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
     () => buildScoreRoadmap(student, skills, drills, practiceTests, targetDate),
     [student, skills, drills, practiceTests, targetDate],
   )
-  const roadmapIssues = useMemo(
-    () => record ? validatePlanAgainstRoadmap(record.draft, roadmap, skills, drills, targetDate) : [],
+  const { issues: roadmapIssues, warnings: roadmapWarnings } = useMemo(
+    () => record ? validatePlanAgainstRoadmap(record.draft, roadmap, skills, drills, targetDate) : { issues: [], warnings: [] },
     [record, roadmap, skills, drills, targetDate],
   )
   const feedbackIssue = feedback.loading ? 'Wait for assignment feedback to load.' : (feedback.error || null) ?? (feedback.notes.some(note => !note.reviewed_at) ? 'Read new assignment notes and save a planning response before publishing.' : null)
@@ -449,6 +449,12 @@ export function PlannerPage({ student, skills, drills, practiceTests, onPublishe
 
               {!published && (
                 <div className="planner-publish-box">
+                  {roadmapWarnings.length > 0 && (
+                    <div className="planner-roadmap-issues" role="status">
+                      <strong>Difficulty warning — publication is still allowed:</strong>
+                      <ul>{roadmapWarnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
+                    </div>
+                  )}
                   {roadmapIssues.length > 0 && (
                     <div className="planner-roadmap-issues" role="alert">
                       <strong>Roadmap check found {roadmapIssues.length} {roadmapIssues.length === 1 ? 'issue' : 'issues'}:</strong>

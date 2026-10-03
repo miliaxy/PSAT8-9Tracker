@@ -50,7 +50,7 @@ const phaseCopy: Record<RoadmapPhaseId, Pick<RoadmapPhase, 'label' | 'objective'
     objective: 'Combine mastered skills in timed modules while protecting accuracy, pacing, and decision quality.',
     exitCriteria: [
       'Timed mixed work stays accurate at PSAT 8/9 pace.',
-      'Hard questions appear only for skills that cleared the 95% gate.',
+      'Recommend Hard questions after the 95% foundation target; show a warning below it.',
       'A full-length checkpoint confirms that gains transfer beyond isolated drills.',
     ],
   },
@@ -275,7 +275,7 @@ function milestoneOutcomes(
     outcomes.push('Research every miss and verify that the same concept error does not repeat.')
   } else if (phaseId === 'integration') {
     outcomes.push('Complete timed mixed work at PSAT 8/9 pace without sacrificing accuracy.')
-    outcomes.push('Use Hard questions only for skills that have cleared the 95% Easy/Medium gate.')
+    outcomes.push('Recommend Hard questions after the 95% Easy/Medium target; parents may choose a challenge earlier.')
     outcomes.push('Track pacing, blanks, and second-guessing alongside accuracy.')
   } else {
     outcomes.push('Repair only recurring, high-value mistakes; avoid broad new units.')
@@ -460,8 +460,9 @@ export function validatePlanAgainstRoadmap(
   drills: Drill[],
   targetDate: string,
 ) {
-  if (draft.dayType === 'no-study') return []
+  if (draft.dayType === 'no-study') return { issues: [], warnings: [] }
   const issues: string[] = []
+  const warnings: string[] = []
   const byId = new Map(skills.map((skill) => [skill.id, skill]))
   const activePriorities = new Set(roadmap.activeMilestone.prioritySkillIds)
   const isWeekend = [0, 6].includes(parseDate(targetDate).getDay())
@@ -517,7 +518,7 @@ export function validatePlanAgainstRoadmap(
       if (assignsHard) {
         const foundation = recentFoundationEvidence(skill, drills, targetDate)
         if (foundation.attempted < 20 || foundation.accuracy < 95) {
-          issues.push(`Hard work for ${skill.name} is locked until at least 20 recent Easy/Medium questions reach 95% accuracy.`)
+          warnings.push(`Hard work for ${skill.name}: recent Easy/Medium evidence is below the recommended 95% across at least 20 questions. A parent may still publish this challenge; it does not establish mastery.`)
         }
       }
     }
@@ -528,5 +529,5 @@ export function validatePlanAgainstRoadmap(
     issues.push(`At least one assignment must advance this week’s ${roadmap.activeMilestone.title} milestone.`)
   }
 
-  return [...new Set(issues)]
+  return { issues: [...new Set(issues)], warnings: [...new Set(warnings)] }
 }
